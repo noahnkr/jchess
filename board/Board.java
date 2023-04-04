@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import pieces.Color;
 import player.BlackPlayer;
 import player.Player;
 import player.WhitePlayer;
@@ -119,6 +118,13 @@ public class Board {
         return legalMoves;
     }
 
+    public Iterable<Move> getAllLegalMoves() {
+        List<Move> allLegalMoves = new ArrayList<>();
+        allLegalMoves.addAll(this.whitePlayer.getLegalMoves());
+        allLegalMoves.addAll(this.blackPlayer.getLegalMoves());
+        return allLegalMoves;
+    }
+
     public Tile getTile(int coordinate) {
         return gameBoard.get(coordinate);
     }
@@ -197,6 +203,10 @@ public class Board {
 
         public Board build() {
             return new Board(this);
+        }
+
+        public void setEnPassant(Pawn movedPawn) {
+            
         }
     }
 

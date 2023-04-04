@@ -77,5 +77,10 @@ public class Knight extends Piece {
         return Board.EIGHTH_COLUMN[position] && (offset == -15 || offset == -6
                                              || offset == 10 || offset == 17);
     }
+
+    @Override
+    public Knight movePiece(Move move) {
+        return new Knight(move.getDestinationCoordinate(), move.getMovedPiece().getColor());
+    }
     
 }

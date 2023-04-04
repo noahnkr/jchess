@@ -15,10 +15,42 @@ public abstract class Piece {
 
     protected boolean isFirstMove;
 
+    private int cachedHashCode;
+
     public Piece(PieceType pieceType, int position, Color color) {
-        piecePosition = position;
-        pieceColor = color;
-        isFirstMove = true;
+        this.piecePosition = position;
+        this.pieceColor = color;
+        this.isFirstMove = true;
+        this.cachedHashCode = computeHashCode();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof Piece)) {
+            return false;
+        }
+
+        Piece otherPiece = (Piece) other;
+        
+        return piecePosition == otherPiece.getPosition() && pieceType == otherPiece.getPieceType() &&
+               pieceColor == otherPiece.getColor() && isFirstMove == otherPiece.isFirstMove();
+    }
+
+    @Override
+    public int hashCode() {
+        return cachedHashCode;
+    }
+
+    public int computeHashCode() {
+        int result = pieceType.hashCode();
+        result = 31 * result + pieceColor.hashCode();
+        result = 31 * result + piecePosition;
+        result = 31 * result + (isFirstMove ? 1 : 0);
+        return result;
     }
 
     public boolean isFirstMove() {
@@ -38,6 +70,8 @@ public abstract class Piece {
     }
 
     public abstract List<Move> calculateLegalMoves(Board board);
+
+    public abstract Piece movePiece(Move move);
 
     public enum PieceType {
         PAWN("P"),
