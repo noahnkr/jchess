@@ -14,6 +14,10 @@ public abstract class Tile {
         return piece != null ? new OccupiedTile(coordinate, piece) : new EmptyTile(coordinate);
     }
 
+    public int getTileCoordinate() {
+        return tileCoordinate;
+    }
+
     public abstract boolean isOccupied();
 
     public abstract Piece getPiece();
