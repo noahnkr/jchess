@@ -18,6 +18,7 @@ public abstract class Piece {
     private int cachedHashCode;
 
     public Piece(PieceType pieceType, int position, Color color) {
+        this.pieceType = pieceType;
         this.piecePosition = position;
         this.pieceColor = color;
         this.isFirstMove = true;

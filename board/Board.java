@@ -22,8 +22,8 @@ public class Board {
     private BlackPlayer blackPlayer;
     private Player currentPlayer;
 
-    private static final int NUM_TILES = 64;
-    private static final int NUM_TILES_PER_ROW = 8;
+    public static final int NUM_TILES = 64;
+    public static final int NUM_TILES_PER_ROW = 8;
 
     // Used to determine if a piece is on a certain column for move exceptions 
     public static final boolean[] FIRST_COLUMN = initColumn(0);
