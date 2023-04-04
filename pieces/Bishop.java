@@ -14,7 +14,7 @@ public class Bishop extends Piece {
     private static final int[] POSSIBLE_MOVE_OFFSET = { -9, -7, 7, 9 };
 
     public Bishop(int position, Color color) {
-        super(position, color);
+        super(PieceType.BISHOP, position, color);
     }
 
     @Override

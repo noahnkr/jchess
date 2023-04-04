@@ -14,7 +14,7 @@ public class King extends Piece {
     private static final int[] POSSIBLE_MOVE_OFFSET = { -9, -8, -7, -1, 1, 7, 8, 9 };
 
     public King(int position, Color color) {
-        super(position, color);
+        super(PieceType.KING, position, color);
     }
 
     @Override

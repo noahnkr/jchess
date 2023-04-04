@@ -14,7 +14,7 @@ public class Pawn extends Piece {
     private static final int[] POSSIBLE_MOVE_OFFSET = { 7, 8, 9, 16 };
 
     public Pawn(int position, Color color) {
-        super(position, color);
+        super(PieceType.PAWN, position, color);
     }
 
     @Override

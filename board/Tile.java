@@ -1,10 +1,10 @@
 package board;
 
-import pieces.*;
+import pieces.Piece;
 
 public abstract class Tile {
 
-    protected final int tileCoordinate;
+    private final int tileCoordinate;
 
     public Tile(int coordinate) {
         tileCoordinate = coordinate;
@@ -42,7 +42,7 @@ public abstract class Tile {
 
     public static final class OccupiedTile extends Tile {
 
-        protected Piece tilePiece;
+        private Piece tilePiece;
 
         public OccupiedTile(int coordinate, Piece piece) {
             super(coordinate);
