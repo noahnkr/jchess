@@ -3,15 +3,19 @@ package pieces;
 import java.util.ArrayList;
 import java.util.List;
 
-import board.*;
-import board.Move.*;
+import board.Board;
+import board.Tile;
+import board.Move.AttackMove;
+import board.Move.BasicMove;
+import board.Move;
+
 
 public class Knight extends Piece {
 
     private static final int[] POSSIBLE_MOVE_OFFSET = { -17, -15, -10, -6, 6, 10, 15, 17 };
 
     public Knight(int position, Color color) {
-        super(position, color);
+        super(PieceType.KNIGHT, position, color);
     }
 
     @Override

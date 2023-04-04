@@ -1,6 +1,7 @@
 package board;
 
-import pieces.*;
+import board.Board.BoardBuilder;
+import pieces.Piece;
 
 public abstract class Move {
 
@@ -16,10 +17,35 @@ public abstract class Move {
         this.destinationCoordinate = destinationCoordinate;
     }
 
+    public int getDestinationCoordinate() {
+        return this.destinationCoordinate;
+    }
+
+    public abstract Board execute();
+
     public static class BasicMove extends Move {
 
         public BasicMove(Board board, Piece movedPiece, int destinationCoordinate) {
             super(board, movedPiece, destinationCoordinate);
+        }
+
+        @Override
+        public Board execute() {
+            BoardBuilder builder = new BoardBuilder();
+
+            for (Piece piece : this.board.currentPlayer().getActivePieces()) {
+                if (!this.movedPiece.equals(piece)) {
+                    builder.setPiece(piece);
+                }
+            }
+
+            for (Piece piece : this.board.currentPlayer().getOpponent().getActivePieces()) {
+                builder.setPiece(piece);
+            }
+
+            builder.setPiece(null);
+            builder.setMoveMaker(this.board.currentPlayer().getOpponent().getColor());
+            return builder.build();
         }
 
     }
@@ -31,6 +57,11 @@ public abstract class Move {
         public AttackMove(Board board, Piece movedPiece, Piece attackedPiece, int destinationCoordinate) {
             super(board, movedPiece, destinationCoordinate);
             this.attackedPiece = attackedPiece;
+        }
+
+        @Override
+        public Board execute() {
+            return null;
         }
         
     }

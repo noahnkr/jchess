@@ -2,9 +2,12 @@ package pieces;
 
 import java.util.List;
 
-import board.*;
+import board.Board;
+import board.Move;
 
 public abstract class Piece {
+
+    protected PieceType pieceType;
 
     protected int piecePosition;
 
@@ -12,7 +15,7 @@ public abstract class Piece {
 
     protected boolean isFirstMove;
 
-    public Piece(int position, Color color) {
+    public Piece(PieceType pieceType, int position, Color color) {
         piecePosition = position;
         pieceColor = color;
         isFirstMove = true;
@@ -20,6 +23,10 @@ public abstract class Piece {
 
     public boolean isFirstMove() {
         return isFirstMove;
+    }
+
+    public PieceType getPieceType() {
+        return pieceType;
     }
 
     public int getPosition() {

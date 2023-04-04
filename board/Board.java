@@ -5,19 +5,26 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import pieces.Color;
 import player.BlackPlayer;
+import player.Player;
 import player.WhitePlayer;
 import pieces.*;
 
 public class Board {
 
-    protected List<Tile> gameBoard;
-    protected Collection<Piece> whitePieces;
-    protected Collection<Piece> blackPieces;
+    private List<Tile> gameBoard;
 
-    public static final int NUM_TILES = 64;
-    public static final int NUM_TILES_PER_ROW = 8;
+    private Collection<Piece> whitePieces;
+    private Collection<Piece> blackPieces;
+
+    private WhitePlayer whitePlayer;
+    private BlackPlayer blackPlayer;
+    private Player currentPlayer;
+
+    private static final int NUM_TILES = 64;
+    private static final int NUM_TILES_PER_ROW = 8;
 
     // Used to determine if a piece is on a certain column for move exceptions 
     public static final boolean[] FIRST_COLUMN = initColumn(0);
@@ -36,8 +43,9 @@ public class Board {
         Collection<Move> whiteLegalMoves = getLegalMoves(whitePieces);
         Collection<Move> blackLegalMoves = getLegalMoves(blackPieces);
 
-        WhitePlayer whitePlayer = new WhitePlayer(this, whiteLegalMoves, blackLegalMoves);
-        BlackPlayer blackPlayer = new BlackPlayer(this, whiteLegalMoves, blackLegalMoves);
+        this.whitePlayer = new WhitePlayer(this, whiteLegalMoves, blackLegalMoves);
+        this.blackPlayer = new BlackPlayer(this, whiteLegalMoves, blackLegalMoves);
+        this.currentPlayer = builder.nextMoveMaker.choosePlayer(this.whitePlayer, this.blackPlayer);
     }
 
     @Override
@@ -63,10 +71,31 @@ public class Board {
 
     private String prettyPrint(Tile tile) {
         if (tile.isOccupied()) {
-            return tile.getPiece().getColor().isBlack() ? tile.getPiece().toString().toLowerCase() :
-                                                          tile.getPiece().toString();
+            return tile.getPiece().getColor().isBlack() ? 
+                   tile.getPiece().toString().toLowerCase() : 
+                   tile.getPiece().toString();
         }
         return tile.toString();
+    }
+
+    public Player currentPlayer() {
+        return this.currentPlayer;
+    }
+
+    public Player blackPlayer() {
+        return this.blackPlayer;
+    }
+
+    public Player whitePlayer() {
+        return this.whitePlayer;
+    }
+
+    public Collection<Piece> getBlackPieces() {
+        return this.blackPieces;
+    }
+
+    public Collection<Piece> getWhitePieces() {
+        return this.whitePieces;
     }
 
     private static Collection<Piece> getActivePieces(List<Tile> gameBoard, Color color) {
@@ -145,14 +174,14 @@ public class Board {
         builder.setPiece(new Rook(63, Color.WHITE));
 
         // White first move
-        builder.setTurn(Color.WHITE);
+        builder.setMoveMaker(Color.WHITE);
 
         return builder.build();
     }
 
     public static class BoardBuilder {
         Map<Integer, Piece> pieceMap;
-        Color playerTurn;
+        Color nextMoveMaker;
 
         public BoardBuilder() { this.pieceMap = new HashMap<>(); }
 
@@ -161,8 +190,8 @@ public class Board {
             return this;
         }
 
-        public BoardBuilder setTurn(Color playerTurn) {
-            this.playerTurn = playerTurn;
+        public BoardBuilder setMoveMaker(Color nextMoveMaker) {
+            this.nextMoveMaker = nextMoveMaker;
             return this;
         }
 
