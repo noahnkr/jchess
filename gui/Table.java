@@ -1,6 +1,9 @@
 package gui;
 
+import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
@@ -11,13 +14,21 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import board.Board;
 
 public class Table {
+
+    private Board gameBoard;
 
     private JFrame gameFrame;
     private BoardPanel boardPanel;
@@ -26,7 +37,11 @@ public class Table {
     private static final Dimension BOARD_PANEL_DIMENSION = new Dimension(400, 350);
     private static final Dimension TILE_PANEL_DIMENSION = new Dimension(10, 10);
 
+    private static final Color lightTileColor = Color.decode("#2d333b");
+    private static final Color darkTileColor =  Color.decode("#697484");
+
     public Table() {
+        this.gameBoard = Board.createStandardBoard();
         this.gameFrame = new JFrame("JChess");
         JMenuBar menuBar = createTableMenuBar();
         this.gameFrame.setJMenuBar(menuBar);
@@ -92,20 +107,34 @@ public class Table {
 
         private int tileId;
 
-        private static final Color lightTileColor = Color.decode("#2d333b");
-        private static final Color darkTileColor =  Color.decode("#697484");
-        
         public TilePanel(BoardPanel boardPanel, int tileId) {
             super(new GridBagLayout());
             this.tileId = tileId;
             setPreferredSize(TILE_PANEL_DIMENSION);
             assignTileColor();
+            assignTilePieceIcon(gameBoard);
             validate();
         }
 
         private void assignTileColor() {
             boolean isLight = ((tileId + tileId / 8) % 2 == 0);
             setBackground(isLight ? lightTileColor : darkTileColor);
+        }
+
+        private void assignTilePieceIcon(Board board) {
+            this.removeAll();
+            if (board.getTile(tileId).isOccupied()) {
+                try {
+                    String pieceIconPath = board.getTile(tileId).getPiece().getColor().name().toLowerCase() + "_" + 
+                                           board.getTile(tileId).getPiece().getClass().getSimpleName().toLowerCase() + ".png";
+                    BufferedImage pieceIcon = ImageIO.read(new File("./gui/assets/piece_icons/" + pieceIconPath));
+                    Image scaledPieceIcon = pieceIcon.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                    add(new JLabel(new ImageIcon(scaledPieceIcon)));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
         }
     }
     

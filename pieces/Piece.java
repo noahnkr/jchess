@@ -77,7 +77,7 @@ public abstract class Piece {
     public enum PieceType {
         PAWN("P"),
         ROOK("R"),
-        KNIGHT("K"),
+        KNIGHT("N"),
         BISHOP("B"),
         QUEEN("Q"),
         KING("K");
