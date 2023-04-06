@@ -6,7 +6,6 @@ public enum MoveStatus {
         public boolean isDone() {
             return true;
         }
-
     },
     ILLEGAL_MOVE {
         @Override

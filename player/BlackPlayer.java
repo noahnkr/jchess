@@ -27,7 +27,7 @@ public class BlackPlayer extends Player {
 
     @Override
     public Color getColor() {
-        return Color.WHITE;
+        return Color.BLACK;
     }
 
     @Override

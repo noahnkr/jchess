@@ -17,11 +17,11 @@ public abstract class Piece {
 
     private int cachedHashCode;
 
-    public Piece(PieceType pieceType, int position, Color color) {
+    public Piece(PieceType pieceType, int position, Color color, boolean isFirstMove) {
         this.pieceType = pieceType;
         this.piecePosition = position;
         this.pieceColor = color;
-        this.isFirstMove = true;
+        this.isFirstMove = isFirstMove;
         this.cachedHashCode = computeHashCode();
     }
 
@@ -55,19 +55,19 @@ public abstract class Piece {
     }
 
     public boolean isFirstMove() {
-        return isFirstMove;
+        return this.isFirstMove;
     }
 
     public PieceType getPieceType() {
-        return pieceType;
+        return this.pieceType;
     }
 
     public int getPosition() {
-        return piecePosition;
+        return this.piecePosition;
     }
 
     public Color getColor() {
-        return pieceColor;
+        return this.pieceColor;
     }
 
     public abstract List<Move> calculateLegalMoves(Board board);
