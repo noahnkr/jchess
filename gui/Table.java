@@ -43,16 +43,20 @@ public class Table {
 
     private JFrame gameFrame;
     private BoardPanel boardPanel;
+    private GameHistoryPanel gameHistoryPanel;
+    private TakenPiecesPanel takenPiecesPanel;
 
     private Tile sourceTile;
     private Tile destinationTile;
     private Piece movedPiece;
+
+    private MoveLog moveHistory;
     private Move lastMove;
 
     private BoardDirection boardDirection;
     private boolean highlightLegalMoves;
 
-    private static final Dimension OUTER_FRAME_DIMENSION = new Dimension(800, 800);
+    private static final Dimension OUTER_FRAME_DIMENSION = new Dimension(1000, 800);
     private static final Dimension BOARD_PANEL_DIMENSION = new Dimension(400, 350);
     private static final Dimension TILE_PANEL_DIMENSION = new Dimension(100, 100);
 
@@ -66,10 +70,15 @@ public class Table {
         this.gameFrame = new JFrame("JChess");
         this.gameFrame.setJMenuBar(createTableMenuBar());
         this.boardDirection = BoardDirection.NORMAL;
+        this.gameHistoryPanel = new GameHistoryPanel();
+        this.takenPiecesPanel = new TakenPiecesPanel();
         this.highlightLegalMoves = true;
         this.gameFrame.setSize(OUTER_FRAME_DIMENSION);
-        this.gameFrame.setResizable(false);
+        this.gameFrame.setResizable(true);
         this.boardPanel = new BoardPanel();
+        this.moveHistory = new MoveLog();
+        this.gameFrame.add(this.takenPiecesPanel, BorderLayout.WEST);
+        this.gameFrame.add(this.gameHistoryPanel, BorderLayout.EAST);
         this.gameFrame.add(this.boardPanel, BorderLayout.CENTER);
         this.gameFrame.setVisible(true);
     }
@@ -245,6 +254,7 @@ public class Table {
                             MoveTransition transition = gameBoard.currentPlayer().makeMove(move);
                             if (transition.getMoveStatus().isDone()) {
                                 gameBoard = transition.getTransitionBoard();
+                                moveHistory.addMove(move); 
                                 setBackground(destinationTileColor);
                                 lastMove = move;
                                 
@@ -256,6 +266,8 @@ public class Table {
 
                             @Override
                             public void run() {
+                                gameHistoryPanel.redo(gameBoard, moveHistory);
+                                takenPiecesPanel.redo(moveHistory);
                                 boardPanel.drawBoard(gameBoard);
                             }
         
@@ -323,6 +335,7 @@ public class Table {
         }
 
         private void highlightLastMove(Board board) {
+            // TODO: fix hgighlighting with flipped board
             if (lastMove != null) {
                 boardPanel.getTilePanel(lastMove.getCurrentCoordinate()).setBackground(sourceTileColor);
                 boardPanel.getTilePanel(lastMove.getDestinationCoordinate()).setBackground(destinationTileColor);
@@ -389,7 +402,7 @@ public class Table {
             return moves;
         }
 
-        public void addMoves(Move move) {
+        public void addMove(Move move) {
             this.moves.add(move);
         }
 

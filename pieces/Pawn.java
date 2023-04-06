@@ -9,6 +9,7 @@ import board.Tile;
 import board.Move.BasicMove;
 import board.Move.PawnAttackMove;
 import board.Move.PawnJump;
+import board.Move.PawnMove;
 
 public class Pawn extends Piece {
 
@@ -41,7 +42,7 @@ public class Pawn extends Piece {
 
             // Basic Pawn Move
             if (currentMoveOffset == 8 && !board.getTile(destinationCoordinate).isOccupied()) {
-                legalMoves.add(new BasicMove(board, this, destinationCoordinate));
+                legalMoves.add(new PawnMove(board, this, destinationCoordinate));
             // Pawn Jump
             } else if (currentMoveOffset == 16 && this.isFirstMove() &&
                       ((Board.SECOND_ROW[this.piecePosition] && this.pieceColor.isBlack()) ||
@@ -49,6 +50,7 @@ public class Pawn extends Piece {
                 int behindDestinationCoordinate = this.piecePosition + (this.pieceColor.getDirection() * 8);
                 if (!board.getTile(behindDestinationCoordinate).isOccupied() &&
                     !board.getTile(destinationCoordinate).isOccupied()) {
+                    
                     legalMoves.add(new PawnJump(board, this, destinationCoordinate));
                 }
             } else if (currentMoveOffset == 7 && destinationTile.isOccupied() &&

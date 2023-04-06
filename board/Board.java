@@ -35,8 +35,8 @@ public class Board {
     public static final boolean[] SEVENTH_COLUMN = initColumn(6);
     public static final boolean[] EIGHTH_COLUMN = initColumn(7);
 
-    public static final boolean[] SECOND_ROW = initRow(1);
-    public static final boolean[] SEVENTH_ROW = initRow(6);
+    public static final boolean[] SECOND_ROW = initRow(8);
+    public static final boolean[] SEVENTH_ROW = initRow(48);
 
     public Board(BoardBuilder builder) {
         this.gameBoard = initializeBoard(builder);
@@ -236,11 +236,11 @@ public class Board {
 
     private static boolean[] initRow(int rowNumber) {
         boolean[] row = new boolean[NUM_TILES];
-         do {
-            row[rowNumber++] = true;
-         } while(rowNumber % NUM_TILES_PER_ROW != 0);
+        do {
+            row[rowNumber] = true;
+            rowNumber++;
+        } while(rowNumber % NUM_TILES_PER_ROW != 0);
            
-
         return row;
     }
 
