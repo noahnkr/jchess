@@ -20,6 +20,7 @@ import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
@@ -184,9 +185,12 @@ public class Table {
     private class BoardPanel extends JPanel {
         private List<TilePanel> boardTiles;
 
+        protected boolean dragging;
+
         public BoardPanel() {
             super(new GridLayout(8, 8));
             this.boardTiles = new ArrayList<>();
+            this.dragging = false;
             for (int i = 0; i < Board.NUM_TILES; i++) {
                 TilePanel tilePanel = new TilePanel(this, i);
                 this.boardTiles.add(tilePanel);
@@ -214,12 +218,15 @@ public class Table {
     
     private class TilePanel extends JPanel {
 
+        private BoardPanel boardPanel;
+
         private int tileId;
 
         private JLayeredPane contentPane;
 
         public TilePanel(BoardPanel boardPanel, int tileId) {
             super(new GridBagLayout());
+            this.boardPanel = boardPanel;
             this.tileId = tileId;
             contentPane = new JLayeredPane();
             contentPane.setPreferredSize(TILE_PANEL_DIMENSION);
@@ -228,8 +235,8 @@ public class Table {
             assignTilePieceIcon(gameBoard);
             add(contentPane);
 
-            addMouseListener(new MouseListener() {
-
+            addMouseListener(new MouseAdapter() {
+                
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     // Right or Middle click
@@ -260,7 +267,6 @@ public class Table {
                                 
                             }
                             clearTileState();
-
                         }
                         SwingUtilities.invokeLater(new Runnable() {
 
@@ -270,33 +276,47 @@ public class Table {
                                 takenPiecesPanel.redo(moveHistory);
                                 boardPanel.drawBoard(gameBoard);
                             }
-        
                         });
-
                     }
-                   
+                }
+
+                @Override
+                public void mouseDragged(MouseEvent e) {
+                    if (boardPanel.dragging) {
+                        if (sourceTile == null) {
+                            sourceTile = gameBoard.getTile(tileId);
+                            movedPiece = sourceTile.getPiece();
+                            if (movedPiece == null) {
+                                sourceTile = null;
+                            } else {
+                                setBackground(sourceTileColor);
+                            }
+                        }
+                    }
                 }
 
                 @Override
                 public void mousePressed(MouseEvent e) {
-                   
+                    boardPanel.dragging = true;
+                    if (e.getButton() == MouseEvent.BUTTON3 ||
+                        e.getButton() == MouseEvent.BUTTON2) {
+                        clearTileState();
+                    } else if (e.getButton() == MouseEvent.BUTTON1) {
+
+                    }
+                    
                 }
 
                 @Override
                 public void mouseReleased(MouseEvent e) {
-                   
+                    boardPanel.dragging = false;
                 }
 
                 @Override
-                public void mouseEntered(MouseEvent e) {
-                    
-                    
-                }
+                public void mouseEntered(MouseEvent e) {}
 
                 @Override
-                public void mouseExited(MouseEvent e) {
-                   
-                }
+                public void mouseExited(MouseEvent e) {}
             });
             validate();
         }
