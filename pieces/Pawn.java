@@ -6,15 +6,21 @@ import java.util.List;
 import board.Board;
 import board.Move;
 import board.Tile;
-import board.Move.AttackMove;
 import board.Move.BasicMove;
+import board.Move.PawnAttackMove;
+import board.Move.PawnJump;
+import board.Move.PawnMove;
 
 public class Pawn extends Piece {
 
     private static final int[] POSSIBLE_MOVE_OFFSET = { 7, 8, 9, 16 };
 
     public Pawn(int position, Color color) {
-        super(PieceType.PAWN, position, color);
+        super(PieceType.PAWN, position, color, true);
+    }
+
+    public Pawn(int position, Color color, boolean isFirstMove) {
+        super(PieceType.PAWN, position, color, isFirstMove);
     }
 
     @Override
@@ -34,28 +40,31 @@ public class Pawn extends Piece {
                 continue;
             }
 
+            // Basic Pawn Move
             if (currentMoveOffset == 8 && !board.getTile(destinationCoordinate).isOccupied()) {
-                legalMoves.add(new BasicMove(board, this, destinationCoordinate));
+                legalMoves.add(new PawnMove(board, this, destinationCoordinate));
+            // Pawn Jump
             } else if (currentMoveOffset == 16 && this.isFirstMove() &&
-                      (Board.SECOND_ROW[this.piecePosition] && this.pieceColor.isBlack()) ||
-                      (Board.SEVENTH_ROW[this.piecePosition] && this.pieceColor.isWhite())) {
+                      ((Board.SECOND_ROW[this.piecePosition] && this.pieceColor.isBlack()) ||
+                      (Board.SEVENTH_ROW[this.piecePosition] && this.pieceColor.isWhite()))) {
                 int behindDestinationCoordinate = this.piecePosition + (this.pieceColor.getDirection() * 8);
                 if (!board.getTile(behindDestinationCoordinate).isOccupied() &&
                     !board.getTile(destinationCoordinate).isOccupied()) {
-                    legalMoves.add(new BasicMove(board, this, destinationCoordinate));
+                    
+                    legalMoves.add(new PawnJump(board, this, destinationCoordinate));
                 }
             } else if (currentMoveOffset == 7 && destinationTile.isOccupied() &&
                       !((Board.EIGHTH_COLUMN[this.piecePosition] && this.pieceColor.isWhite()) ||
                       (Board.FIRST_COLUMN[this.piecePosition] && this.pieceColor.isBlack()))) {
                     if (this.pieceColor != destinationTile.getPiece().pieceColor) {
-                        legalMoves.add(new AttackMove(board, this, destinationTile.getPiece(), destinationCoordinate));
+                        legalMoves.add(new PawnAttackMove(board, this, destinationTile.getPiece(), destinationCoordinate));
                     }
                     
             } else if (currentMoveOffset == 9 && destinationTile.isOccupied() &&
                       !((Board.FIRST_COLUMN[this.piecePosition] && this.pieceColor.isWhite()) || 
                       (Board.EIGHTH_COLUMN[this.piecePosition] && this.pieceColor.isBlack()))) {
                     if (this.pieceColor != destinationTile.getPiece().pieceColor) {
-                        legalMoves.add(new AttackMove(board, this, destinationTile.getPiece(), destinationCoordinate));
+                        legalMoves.add(new PawnAttackMove(board, this, destinationTile.getPiece(), destinationCoordinate));
                     }
             }
         }

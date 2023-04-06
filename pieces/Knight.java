@@ -15,7 +15,11 @@ public class Knight extends Piece {
     private static final int[] POSSIBLE_MOVE_OFFSET = { -17, -15, -10, -6, 6, 10, 15, 17 };
 
     public Knight(int position, Color color) {
-        super(PieceType.KNIGHT, position, color);
+        super(PieceType.KNIGHT, position, color, true);
+    }
+
+    public Knight(int position, Color color, boolean isFirstMove) {
+        super(PieceType.KNIGHT, position, color, isFirstMove);
     }
 
     @Override

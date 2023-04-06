@@ -14,8 +14,14 @@ public class Bishop extends Piece {
     private static final int[] POSSIBLE_MOVE_OFFSET = { -9, -7, 7, 9 };
 
     public Bishop(int position, Color color) {
-        super(PieceType.BISHOP, position, color);
+        super(PieceType.BISHOP, position, color, true);
     }
+
+    public Bishop(int position, Color color, boolean isFirstMove) {
+        super(PieceType.BISHOP, position, color, isFirstMove);
+    }
+
+    
 
     @Override
     public String toString() {
