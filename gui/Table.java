@@ -15,6 +15,7 @@ import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Image;
@@ -53,6 +54,7 @@ public class Table {
 
     private MoveLog moveHistory;
     private Move lastMove;
+    private Tile lastEnteredTile;
 
     private BoardDirection boardDirection;
     private boolean highlightLegalMoves;
@@ -185,12 +187,9 @@ public class Table {
     private class BoardPanel extends JPanel {
         private List<TilePanel> boardTiles;
 
-        protected boolean dragging;
-
         public BoardPanel() {
             super(new GridLayout(8, 8));
             this.boardTiles = new ArrayList<>();
-            this.dragging = false;
             for (int i = 0; i < Board.NUM_TILES; i++) {
                 TilePanel tilePanel = new TilePanel(this, i);
                 this.boardTiles.add(tilePanel);
@@ -199,6 +198,8 @@ public class Table {
             setPreferredSize(BOARD_PANEL_DIMENSION);
             validate();
         }
+
+        
 
         public void drawBoard(Board board) {
             removeAll();
@@ -224,106 +225,124 @@ public class Table {
 
         private JLayeredPane contentPane;
 
+        protected boolean drawPiece;
+
         public TilePanel(BoardPanel boardPanel, int tileId) {
             super(new GridBagLayout());
             this.boardPanel = boardPanel;
             this.tileId = tileId;
             contentPane = new JLayeredPane();
             contentPane.setPreferredSize(TILE_PANEL_DIMENSION);
+            this.drawPiece = true;
             setPreferredSize(TILE_PANEL_DIMENSION);
-            assignTileColor();
-            assignTilePieceIcon(gameBoard);
+            assignTileColor(gameBoard);
+            assignPiece(gameBoard);
             add(contentPane);
 
-            addMouseListener(new MouseAdapter() {
-                
+            addMouseListener(new MouseListener() {
                 @Override
-                public void mouseClicked(MouseEvent e) {
-                    // Right or Middle click
-                    if (e.getButton() == MouseEvent.BUTTON3 ||
-                        e.getButton() == MouseEvent.BUTTON2) {
-                        clearTileState();
-                    // Left click
-                    } else if (e.getButton() == MouseEvent.BUTTON1) {
-                        if (sourceTile == null) {
-                            sourceTile = gameBoard.getTile(tileId);
-                            movedPiece = sourceTile.getPiece();
-                            if (movedPiece == null) {
-                                sourceTile = null;
-                            } else {
-                                setBackground(sourceTileColor);
-                            }
+                public void mouseClicked(MouseEvent e) {}
+
+                @Override
+                public void mousePressed(MouseEvent e) {
+                    if (sourceTile == null) {
+                        sourceTile = gameBoard.getTile(tileId);
+                        movedPiece = sourceTile.getPiece();
+                        if (movedPiece == null) {
+                            clearTileState();
                         } else {
-                            destinationTile = gameBoard.getTile(tileId);
+                            setBackground(sourceTileColor);
+                            boardPanel.drawBoard(gameBoard);
+                        } 
+                    } else if (sourceTile.getTileCoordinate() == tileId) {
+                        clearTileState();
+                    } else {
+                        destinationTile = gameBoard.getTile(tileId);
+                    }
+                }
+
+                @Override
+                public void mouseReleased(MouseEvent e) {
+                    if (sourceTile != null) {
+                        if (sourceTile.getTileCoordinate() != tileId) {
                             Move move = MoveFactory.createMove(gameBoard, 
-                                                               sourceTile.getTileCoordinate(), 
-                                                               destinationTile.getTileCoordinate());
+                                                        sourceTile.getTileCoordinate(), 
+                                                        destinationTile.getTileCoordinate());
                             MoveTransition transition = gameBoard.currentPlayer().makeMove(move);
                             if (transition.getMoveStatus().isDone()) {
                                 gameBoard = transition.getTransitionBoard();
                                 moveHistory.addMove(move); 
                                 setBackground(destinationTileColor);
                                 lastMove = move;
-                                
+                        
+                            }
+                            clearTileState();
+                        } else if (sourceTile.getTileCoordinate() != lastEnteredTile.getTileCoordinate()) {
+                            destinationTile = lastEnteredTile;
+                            Move move = MoveFactory.createMove(gameBoard, 
+                                                        sourceTile.getTileCoordinate(), 
+                                                        destinationTile.getTileCoordinate());
+                            MoveTransition transition = gameBoard.currentPlayer().makeMove(move);
+                            if (transition.getMoveStatus().isDone()) {
+                                gameBoard = transition.getTransitionBoard();
+                                moveHistory.addMove(move); 
+                                setBackground(destinationTileColor);
+                                lastMove = move;
                             }
                             clearTileState();
                         }
-                        SwingUtilities.invokeLater(new Runnable() {
-
-                            @Override
-                            public void run() {
-                                gameHistoryPanel.redo(gameBoard, moveHistory);
-                                takenPiecesPanel.redo(moveHistory);
-                                boardPanel.drawBoard(gameBoard);
-                            }
-                        });
                     }
-                }
+                        
+                    SwingUtilities.invokeLater(new Runnable() {
 
-                @Override
-                public void mouseDragged(MouseEvent e) {
-                    if (boardPanel.dragging) {
-                        if (sourceTile == null) {
-                            sourceTile = gameBoard.getTile(tileId);
-                            movedPiece = sourceTile.getPiece();
-                            if (movedPiece == null) {
-                                sourceTile = null;
-                            } else {
-                                setBackground(sourceTileColor);
-                            }
+                        @Override
+                        public void run() {
+                            gameHistoryPanel.redo(gameBoard, moveHistory);
+                            takenPiecesPanel.redo(moveHistory);
+                            boardPanel.drawBoard(gameBoard);
                         }
-                    }
+                    });
                 }
 
                 @Override
-                public void mousePressed(MouseEvent e) {
-                    boardPanel.dragging = true;
-                    if (e.getButton() == MouseEvent.BUTTON3 ||
-                        e.getButton() == MouseEvent.BUTTON2) {
-                        clearTileState();
-                    } else if (e.getButton() == MouseEvent.BUTTON1) {
+                public void mouseEntered(MouseEvent e) {
+                    lastEnteredTile = gameBoard.getTile(tileId);
 
-                    }
-                    
                 }
-
-                @Override
-                public void mouseReleased(MouseEvent e) {
-                    boardPanel.dragging = false;
-                }
-
-                @Override
-                public void mouseEntered(MouseEvent e) {}
 
                 @Override
                 public void mouseExited(MouseEvent e) {}
+            });
+
+            addMouseMotionListener(new MouseAdapter() {
+
+                @Override
+                public void mouseDragged(MouseEvent e) {
+                    /* 
+                            try {
+                                String pieceIconPath = movedPiece.getColor().name().toLowerCase() + "_" + 
+                                                   movedPiece.getClass().getSimpleName().toLowerCase() + ".png";
+                                BufferedImage pieceIconImage = ImageIO.read(new File("./gui/assets/piece_icons/" + pieceIconPath));
+                                Image scaledPieceIconImage = pieceIconImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }*/
+                }
+
+                @Override
+                public void mouseMoved(MouseEvent e) {}
+
+                
+
             });
             validate();
         }
 
         public void drawTile(Board board) {
-            assignTileColor();
-            assignTilePieceIcon(board);
+            assignTileColor(board);
+            if (drawPiece) {
+                assignPiece(board);
+            }
             highlightLegalMoves(board);
             //highlightSelectedTile(board);
             highlightLastMove(board);
@@ -381,12 +400,15 @@ public class Table {
 
         }
 
-        private void assignTileColor() {
+        private void assignTileColor(Board board) {
             boolean isLight = ((tileId + tileId / 8) % 2 == 0);
             setBackground(isLight ? lightTileColor : darkTileColor);
+            if (movedPiece != null && movedPiece.getColor() == board.currentPlayer().getColor()) {
+                boardPanel.getTilePanel(sourceTile.getTileCoordinate()).setBackground(sourceTileColor);
+            }
         }
 
-        private void assignTilePieceIcon(Board board) {
+        private void assignPiece(Board board) {
             this.removeAll();
             if (board.getTile(tileId).isOccupied()) {
                 try {
