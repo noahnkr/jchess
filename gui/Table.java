@@ -15,8 +15,6 @@ import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
@@ -51,13 +49,11 @@ public class Table {
     private Tile sourceTile;
     private Tile destinationTile;
     private Piece movedPiece;
-    private Image movedPieceImage;
 
     private MoveLog moveHistory;
     private Move lastMove;
     private Tile lastEnteredTile;
 
-    private BoardDirection boardDirection;
     private boolean highlightLegalMoves;
 
     private static final Dimension OUTER_FRAME_DIMENSION = new Dimension(1000, 800);
@@ -73,12 +69,11 @@ public class Table {
         this.gameBoard = Board.createStandardBoard();
         this.gameFrame = new JFrame("JChess");
         this.gameFrame.setJMenuBar(createTableMenuBar());
-        this.boardDirection = BoardDirection.NORMAL;
         this.gameHistoryPanel = new GameHistoryPanel();
         this.takenPiecesPanel = new TakenPiecesPanel();
         this.highlightLegalMoves = true;
         this.gameFrame.setSize(OUTER_FRAME_DIMENSION);
-        this.gameFrame.setResizable(true);
+        this.gameFrame.setResizable(false);
         this.boardPanel = new BoardPanel();
         this.moveHistory = new MoveLog();
         this.gameFrame.add(this.takenPiecesPanel, BorderLayout.WEST);
@@ -123,18 +118,6 @@ public class Table {
     private JMenu createPreferencesMenu() {
         JMenu preferencesMenu = new JMenu("Preferences");
 
-        JMenuItem flipBoardMenuItem = new JMenuItem("Flip Board");
-        flipBoardMenuItem.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                boardDirection = boardDirection.opposite();
-                boardPanel.drawBoard(gameBoard);
-                boardDirection = boardDirection.opposite();
-            }
-            
-        });
-
         JCheckBoxMenuItem highlightLegalMovesMenuItem = new JCheckBoxMenuItem("Highlight Legal Moves", true);
         highlightLegalMovesMenuItem.addActionListener(new ActionListener() {
 
@@ -145,46 +128,11 @@ public class Table {
             
         });
 
-        preferencesMenu.add(flipBoardMenuItem);
         preferencesMenu.add(highlightLegalMovesMenuItem);
         return preferencesMenu;
     }
 
-    public enum BoardDirection {
-        NORMAL {
-
-            @Override
-            public List<TilePanel> traverse(List<TilePanel> boardTiles) {
-                return boardTiles;
-
-            }
-
-            @Override
-            public BoardDirection opposite() {
-                return FLIPPED;
-            }
-
-        },
-        FLIPPED {
-
-            @Override
-            public List<TilePanel> traverse(List<TilePanel> boardTiles) {
-                Collections.reverse(boardTiles);
-                return boardTiles;
-            }
-
-            @Override
-            public BoardDirection opposite() {
-                return NORMAL;
-            }
-
-        };
-
-        public abstract List<TilePanel> traverse(List<TilePanel> boardTiles);
-
-        public abstract BoardDirection opposite();
-    }
-
+    
     private class BoardPanel extends JPanel {
         private List<TilePanel> boardTiles;
 
@@ -202,7 +150,7 @@ public class Table {
 
         public void drawBoard(Board board) {
             removeAll();
-            for (TilePanel tilePanel : boardDirection.traverse(boardTiles)) {
+            for (TilePanel tilePanel : boardTiles) {
                 tilePanel.drawTile(board);
                 add(tilePanel);
             }
@@ -216,7 +164,7 @@ public class Table {
 
     }
     
-    private class TilePanel extends JPanel {
+    private class TilePanel extends JLayeredPane {
 
         private BoardPanel boardPanel;
 
@@ -225,13 +173,13 @@ public class Table {
         protected boolean drawPiece;
 
         public TilePanel(BoardPanel boardPanel, int tileId) {
-            super(new GridBagLayout());
             this.boardPanel = boardPanel;
             this.tileId = tileId;
             this.drawPiece = true;
+            setLayout(null);
             setPreferredSize(TILE_PANEL_DIMENSION);
-            assignTileColor(gameBoard);
-            assignPiece(gameBoard);
+            drawTile(gameBoard);
+            setOpaque(true);
 
             addMouseListener(new MouseListener() {
                 @Override
@@ -247,14 +195,14 @@ public class Table {
                         } else {
                             setBackground(sourceTileColor);
                             boardPanel.drawBoard(gameBoard);
-                            try {
+                            /*try {
                                 String movedPieceImagePath = movedPiece.getColor().name().toLowerCase() + "_" + 
                                                    movedPiece.getClass().getSimpleName().toLowerCase() + ".png";
                                 BufferedImage movedPieceBufferedImage = ImageIO.read(new File("./gui/assets/piece_icons/" + movedPieceImagePath));
-                                movedPieceImage = movedPieceBufferedImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                                Image movedPieceImage = movedPieceBufferedImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
                             } catch (IOException ex) {
                                 ex.printStackTrace();
-                            }
+                            }*/
                         } 
                     } else if (sourceTile.getTileCoordinate() == tileId) {
                         clearTileState();
@@ -365,7 +313,8 @@ public class Table {
                             }
                             Image scaledLegalMoveImage = legalMoveImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
                             JLabel legalMoves = new JLabel(new ImageIcon(scaledLegalMoveImage));
-                            add(legalMoves);
+                            legalMoves.setBounds(0, 0, 100, 100);
+                            add(legalMoves, Integer.valueOf(1));
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -394,7 +343,8 @@ public class Table {
             try {
                 BufferedImage hoveredTileIcon = ImageIO.read(new File("./gui/assets/move_highlighting/hovered_tile.png"));
                 Image scaledHoveredTileIcon = hoveredTileIcon.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-                add(new JLabel(new ImageIcon(scaledHoveredTileIcon)));
+                JLabel hoveredtile = new JLabel(new ImageIcon(scaledHoveredTileIcon));
+                add(hoveredtile, Integer.valueOf(2));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -418,8 +368,9 @@ public class Table {
                     BufferedImage pieceIconImage = ImageIO.read(new File("./gui/assets/piece_icons/" + pieceIconPath));
                     Image scaledPieceIconImage = pieceIconImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
                     JLabel pieceIcon = new JLabel(new ImageIcon(scaledPieceIconImage));
+                    pieceIcon.setBounds(0, 0, 100, 100);
                     if (drawPiece) {
-                        add(pieceIcon);
+                        add(pieceIcon, Integer.valueOf(0));
                     }
                     
                 } catch (IOException e) {
