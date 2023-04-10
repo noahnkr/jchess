@@ -1,5 +1,6 @@
 import board.Board;
 import gui.Table;
+import pieces.Color;
 
 public class JChess {
 

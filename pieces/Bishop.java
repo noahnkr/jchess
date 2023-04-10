@@ -7,6 +7,7 @@ import board.Board;
 import board.Move;
 import board.Tile;
 import board.Move.AttackMove;
+import board.Move.BasicAttackMove;
 import board.Move.BasicMove;
 
 public class Bishop extends Piece {
@@ -48,7 +49,7 @@ public class Bishop extends Piece {
                     } else {
                         Piece occupiedPiece = destinationTile.getPiece();
                         if (this.pieceColor != occupiedPiece.pieceColor) {
-                            legalMoves.add(new AttackMove(board, this, occupiedPiece, destinationCoordinate));
+                            legalMoves.add(new BasicAttackMove(board, this, occupiedPiece, destinationCoordinate));
                         }
                         break;
                     }

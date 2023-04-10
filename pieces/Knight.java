@@ -6,6 +6,7 @@ import java.util.List;
 import board.Board;
 import board.Tile;
 import board.Move.AttackMove;
+import board.Move.BasicAttackMove;
 import board.Move.BasicMove;
 import board.Move;
 
@@ -52,7 +53,7 @@ public class Knight extends Piece {
                     Piece occupiedPiece = destinationTile.getPiece();
 
                     if (this.pieceColor != occupiedPiece.pieceColor) {
-                        legalMoves.add(new AttackMove(board, this, occupiedPiece, destinationCoordinate));
+                        legalMoves.add(new BasicAttackMove(board, this, occupiedPiece, destinationCoordinate));
                     }
                 }
             }

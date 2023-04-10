@@ -54,7 +54,6 @@ public class Table {
     private Move lastMove;
     private Tile lastEnteredTile;
 
-    private BoardDirection boardDirection;
     private boolean highlightLegalMoves;
 
     private static final Dimension OUTER_FRAME_DIMENSION = new Dimension(1000, 800);
@@ -70,12 +69,11 @@ public class Table {
         this.gameBoard = Board.createStandardBoard();
         this.gameFrame = new JFrame("JChess");
         this.gameFrame.setJMenuBar(createTableMenuBar());
-        this.boardDirection = BoardDirection.NORMAL;
         this.gameHistoryPanel = new GameHistoryPanel();
         this.takenPiecesPanel = new TakenPiecesPanel();
         this.highlightLegalMoves = true;
         this.gameFrame.setSize(OUTER_FRAME_DIMENSION);
-        this.gameFrame.setResizable(true);
+        this.gameFrame.setResizable(false);
         this.boardPanel = new BoardPanel();
         this.moveHistory = new MoveLog();
         this.gameFrame.add(this.takenPiecesPanel, BorderLayout.WEST);
@@ -120,18 +118,6 @@ public class Table {
     private JMenu createPreferencesMenu() {
         JMenu preferencesMenu = new JMenu("Preferences");
 
-        JMenuItem flipBoardMenuItem = new JMenuItem("Flip Board");
-        flipBoardMenuItem.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                boardDirection = boardDirection.opposite();
-                boardPanel.drawBoard(gameBoard);
-                boardDirection = boardDirection.opposite();
-            }
-            
-        });
-
         JCheckBoxMenuItem highlightLegalMovesMenuItem = new JCheckBoxMenuItem("Highlight Legal Moves", true);
         highlightLegalMovesMenuItem.addActionListener(new ActionListener() {
 
@@ -142,46 +128,11 @@ public class Table {
             
         });
 
-        preferencesMenu.add(flipBoardMenuItem);
         preferencesMenu.add(highlightLegalMovesMenuItem);
         return preferencesMenu;
     }
 
-    public enum BoardDirection {
-        NORMAL {
-
-            @Override
-            public List<TilePanel> traverse(List<TilePanel> boardTiles) {
-                return boardTiles;
-
-            }
-
-            @Override
-            public BoardDirection opposite() {
-                return FLIPPED;
-            }
-
-        },
-        FLIPPED {
-
-            @Override
-            public List<TilePanel> traverse(List<TilePanel> boardTiles) {
-                Collections.reverse(boardTiles);
-                return boardTiles;
-            }
-
-            @Override
-            public BoardDirection opposite() {
-                return NORMAL;
-            }
-
-        };
-
-        public abstract List<TilePanel> traverse(List<TilePanel> boardTiles);
-
-        public abstract BoardDirection opposite();
-    }
-
+    
     private class BoardPanel extends JPanel {
         private List<TilePanel> boardTiles;
 
@@ -199,7 +150,7 @@ public class Table {
 
         public void drawBoard(Board board) {
             removeAll();
-            for (TilePanel tilePanel : boardDirection.traverse(boardTiles)) {
+            for (TilePanel tilePanel : boardTiles) {
                 tilePanel.drawTile(board);
                 add(tilePanel);
             }
@@ -219,20 +170,17 @@ public class Table {
 
         private int tileId;
 
-        private boolean drawPiece;
-
-        private boolean hovered;
+        protected boolean drawPiece;
 
         public TilePanel(BoardPanel boardPanel, int tileId) {
             this.boardPanel = boardPanel;
             this.tileId = tileId;
             this.drawPiece = true;
-            this.hovered = false;
             setLayout(null);
             setPreferredSize(TILE_PANEL_DIMENSION);
             drawTile(gameBoard);
             setOpaque(true);
-            
+
             addMouseListener(new MouseListener() {
                 @Override
                 public void mouseClicked(MouseEvent e) {}
@@ -309,13 +257,10 @@ public class Table {
                 @Override
                 public void mouseEntered(MouseEvent e) {
                     lastEnteredTile = gameBoard.getTile(tileId);
-                    hovered = true;
                 }
 
                 @Override
-                public void mouseExited(MouseEvent e) {
-                    hovered = false;
-                }
+                public void mouseExited(MouseEvent e) {}
             });
 
             addMouseMotionListener(new MouseAdapter() {
@@ -338,9 +283,12 @@ public class Table {
                 @Override
                 public void mouseMoved(MouseEvent e) {}
 
+                
+
             });
             validate();
         }
+
 
         public void drawTile(Board board) {
             assignTileColor(board);
@@ -393,11 +341,10 @@ public class Table {
 
         private void highlightSelectedTile(Board board) {
             try {
-                BufferedImage hoveredTileImage = ImageIO.read(new File("./gui/assets/move_highlighting/hovered_tile.png"));
-                Image scaledHoveredTileImage = hoveredTileImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-                JLabel hoveredTile = new JLabel(new ImageIcon(scaledHoveredTileImage));
-                hoveredTile.setBounds(0, 0, 100, 100);
-                add(hoveredTile, Integer.valueOf(2));
+                BufferedImage hoveredTileIcon = ImageIO.read(new File("./gui/assets/move_highlighting/hovered_tile.png"));
+                Image scaledHoveredTileIcon = hoveredTileIcon.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                JLabel hoveredtile = new JLabel(new ImageIcon(scaledHoveredTileIcon));
+                add(hoveredtile, Integer.valueOf(2));
             } catch (IOException e) {
                 e.printStackTrace();
             }
