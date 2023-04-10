@@ -31,7 +31,6 @@ public class Bishop extends Piece {
     @Override
     public List<Move> calculateLegalMoves(Board board) {
         List<Move> legalMoves = new ArrayList<>();
-
         for (int currentMoveOffset : POSSIBLE_MOVE_OFFSET) {
             int destinationCoordinate = this.piecePosition;
             while (Board.isValidTileCoordinate(destinationCoordinate)) {
@@ -63,11 +62,11 @@ public class Bishop extends Piece {
     /* Exceptions to bishop move offset when its position is on the first or eighth column. */
 
     private static boolean isFirstColumnExclusion(int position, int offset) {
-        return Board.FIRST_COLUMN[position] && (offset == -9 || offset == -7);
+        return Board.FIRST_COLUMN[position] && (offset == -9 || offset == 7);
     }
 
     private static boolean isEighthColumnExclusion(int position, int offset) {
-        return Board.EIGHTH_COLUMN[position] && (offset == 7 || offset == 9);
+        return Board.EIGHTH_COLUMN[position] && (offset == -7 || offset == 9);
     }
 
     @Override

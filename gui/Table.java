@@ -51,6 +51,7 @@ public class Table {
     private Tile sourceTile;
     private Tile destinationTile;
     private Piece movedPiece;
+    private Image movedPieceImage;
 
     private MoveLog moveHistory;
     private Move lastMove;
@@ -199,8 +200,6 @@ public class Table {
             validate();
         }
 
-        
-
         public void drawBoard(Board board) {
             removeAll();
             for (TilePanel tilePanel : boardDirection.traverse(boardTiles)) {
@@ -223,21 +222,16 @@ public class Table {
 
         private int tileId;
 
-        private JLayeredPane contentPane;
-
         protected boolean drawPiece;
 
         public TilePanel(BoardPanel boardPanel, int tileId) {
             super(new GridBagLayout());
             this.boardPanel = boardPanel;
             this.tileId = tileId;
-            contentPane = new JLayeredPane();
-            contentPane.setPreferredSize(TILE_PANEL_DIMENSION);
             this.drawPiece = true;
             setPreferredSize(TILE_PANEL_DIMENSION);
             assignTileColor(gameBoard);
             assignPiece(gameBoard);
-            add(contentPane);
 
             addMouseListener(new MouseListener() {
                 @Override
@@ -253,6 +247,14 @@ public class Table {
                         } else {
                             setBackground(sourceTileColor);
                             boardPanel.drawBoard(gameBoard);
+                            try {
+                                String movedPieceImagePath = movedPiece.getColor().name().toLowerCase() + "_" + 
+                                                   movedPiece.getClass().getSimpleName().toLowerCase() + ".png";
+                                BufferedImage movedPieceBufferedImage = ImageIO.read(new File("./gui/assets/piece_icons/" + movedPieceImagePath));
+                                movedPieceImage = movedPieceBufferedImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                            } catch (IOException ex) {
+                                ex.printStackTrace();
+                            }
                         } 
                     } else if (sourceTile.getTileCoordinate() == tileId) {
                         clearTileState();
@@ -307,7 +309,6 @@ public class Table {
                 @Override
                 public void mouseEntered(MouseEvent e) {
                     lastEnteredTile = gameBoard.getTile(tileId);
-
                 }
 
                 @Override
@@ -318,15 +319,17 @@ public class Table {
 
                 @Override
                 public void mouseDragged(MouseEvent e) {
-                    /* 
-                            try {
-                                String pieceIconPath = movedPiece.getColor().name().toLowerCase() + "_" + 
-                                                   movedPiece.getClass().getSimpleName().toLowerCase() + ".png";
-                                BufferedImage pieceIconImage = ImageIO.read(new File("./gui/assets/piece_icons/" + pieceIconPath));
-                                Image scaledPieceIconImage = pieceIconImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }*/
+                    /*if (movedPiece != null) {
+                        drawPiece = false;
+
+                        SwingUtilities.invokeLater(new Runnable() {
+                            @Override
+                            public void run() {
+                                boardPanel.drawBoard(gameBoard);
+                                
+                            }
+                        });
+                    }*/      
                 }
 
                 @Override
@@ -338,15 +341,13 @@ public class Table {
             validate();
         }
 
+
         public void drawTile(Board board) {
             assignTileColor(board);
-            if (drawPiece) {
-                assignPiece(board);
-            }
+            assignPiece(board);
             highlightLegalMoves(board);
             //highlightSelectedTile(board);
             highlightLastMove(board);
-            add(contentPane);
             validate();
             repaint();
         }
@@ -417,7 +418,10 @@ public class Table {
                     BufferedImage pieceIconImage = ImageIO.read(new File("./gui/assets/piece_icons/" + pieceIconPath));
                     Image scaledPieceIconImage = pieceIconImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
                     JLabel pieceIcon = new JLabel(new ImageIcon(scaledPieceIconImage));
-                    add(pieceIcon);
+                    if (drawPiece) {
+                        add(pieceIcon);
+                    }
+                    
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
