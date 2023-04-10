@@ -15,8 +15,6 @@ import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
@@ -51,7 +49,6 @@ public class Table {
     private Tile sourceTile;
     private Tile destinationTile;
     private Piece movedPiece;
-    private Image movedPieceImage;
 
     private MoveLog moveHistory;
     private Move lastMove;
@@ -216,23 +213,26 @@ public class Table {
 
     }
     
-    private class TilePanel extends JPanel {
+    private class TilePanel extends JLayeredPane {
 
         private BoardPanel boardPanel;
 
         private int tileId;
 
-        protected boolean drawPiece;
+        private boolean drawPiece;
+
+        private boolean hovered;
 
         public TilePanel(BoardPanel boardPanel, int tileId) {
-            super(new GridBagLayout());
             this.boardPanel = boardPanel;
             this.tileId = tileId;
             this.drawPiece = true;
+            this.hovered = false;
+            setLayout(null);
             setPreferredSize(TILE_PANEL_DIMENSION);
-            assignTileColor(gameBoard);
-            assignPiece(gameBoard);
-
+            drawTile(gameBoard);
+            setOpaque(true);
+            
             addMouseListener(new MouseListener() {
                 @Override
                 public void mouseClicked(MouseEvent e) {}
@@ -247,14 +247,14 @@ public class Table {
                         } else {
                             setBackground(sourceTileColor);
                             boardPanel.drawBoard(gameBoard);
-                            try {
+                            /*try {
                                 String movedPieceImagePath = movedPiece.getColor().name().toLowerCase() + "_" + 
                                                    movedPiece.getClass().getSimpleName().toLowerCase() + ".png";
                                 BufferedImage movedPieceBufferedImage = ImageIO.read(new File("./gui/assets/piece_icons/" + movedPieceImagePath));
-                                movedPieceImage = movedPieceBufferedImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                                Image movedPieceImage = movedPieceBufferedImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
                             } catch (IOException ex) {
                                 ex.printStackTrace();
-                            }
+                            }*/
                         } 
                     } else if (sourceTile.getTileCoordinate() == tileId) {
                         clearTileState();
@@ -309,10 +309,13 @@ public class Table {
                 @Override
                 public void mouseEntered(MouseEvent e) {
                     lastEnteredTile = gameBoard.getTile(tileId);
+                    hovered = true;
                 }
 
                 @Override
-                public void mouseExited(MouseEvent e) {}
+                public void mouseExited(MouseEvent e) {
+                    hovered = false;
+                }
             });
 
             addMouseMotionListener(new MouseAdapter() {
@@ -335,12 +338,9 @@ public class Table {
                 @Override
                 public void mouseMoved(MouseEvent e) {}
 
-                
-
             });
             validate();
         }
-
 
         public void drawTile(Board board) {
             assignTileColor(board);
@@ -365,7 +365,8 @@ public class Table {
                             }
                             Image scaledLegalMoveImage = legalMoveImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
                             JLabel legalMoves = new JLabel(new ImageIcon(scaledLegalMoveImage));
-                            add(legalMoves);
+                            legalMoves.setBounds(0, 0, 100, 100);
+                            add(legalMoves, Integer.valueOf(1));
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -392,9 +393,11 @@ public class Table {
 
         private void highlightSelectedTile(Board board) {
             try {
-                BufferedImage hoveredTileIcon = ImageIO.read(new File("./gui/assets/move_highlighting/hovered_tile.png"));
-                Image scaledHoveredTileIcon = hoveredTileIcon.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-                add(new JLabel(new ImageIcon(scaledHoveredTileIcon)));
+                BufferedImage hoveredTileImage = ImageIO.read(new File("./gui/assets/move_highlighting/hovered_tile.png"));
+                Image scaledHoveredTileImage = hoveredTileImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                JLabel hoveredTile = new JLabel(new ImageIcon(scaledHoveredTileImage));
+                hoveredTile.setBounds(0, 0, 100, 100);
+                add(hoveredTile, Integer.valueOf(2));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -418,8 +421,9 @@ public class Table {
                     BufferedImage pieceIconImage = ImageIO.read(new File("./gui/assets/piece_icons/" + pieceIconPath));
                     Image scaledPieceIconImage = pieceIconImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
                     JLabel pieceIcon = new JLabel(new ImageIcon(scaledPieceIconImage));
+                    pieceIcon.setBounds(0, 0, 100, 100);
                     if (drawPiece) {
-                        add(pieceIcon);
+                        add(pieceIcon, Integer.valueOf(0));
                     }
                     
                 } catch (IOException e) {
