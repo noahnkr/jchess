@@ -46,6 +46,7 @@ public class TakenPiecesPanel extends JPanel {
         setPreferredSize(TAKEN_PIECES_DIMENSION);
     }
 
+
     public void redo(MoveLog moveLog) {
         this.northPanel.removeAll();
         this.southPanel.removeAll();
@@ -110,5 +111,5 @@ public class TakenPiecesPanel extends JPanel {
 
         validate();
     }
-    
+
 }

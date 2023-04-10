@@ -97,8 +97,10 @@ public class Table {
 
             @Override
             public void actionPerformed(ActionEvent e) {
+                // TODO: Move History and Taken Pieces only clears after move
                 System.out.println("Creating new game.");
                 gameBoard = Board.createStandardBoard();
+                moveHistory.clear();
                 lastMove = null;
                 boardPanel.drawBoard(gameBoard);
             }
