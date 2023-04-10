@@ -46,11 +46,15 @@ public class Board {
         this.whitePieces = getActivePieces(gameBoard, Color.WHITE);
         this.blackPieces = getActivePieces(gameBoard, Color.BLACK);
         this.enPassantPawn = builder.enPassantPawn;
-        Collection<Move> whiteLegalMoves = getLegalMoves(whitePieces);
-        Collection<Move> blackLegalMoves = getLegalMoves(blackPieces);
-        this.whitePlayer = new WhitePlayer(this, whiteLegalMoves, blackLegalMoves);
-        this.blackPlayer = new BlackPlayer(this, blackLegalMoves, whiteLegalMoves);
-        this.currentPlayer = builder.nextMoveMaker.choosePlayer(this.whitePlayer, this.blackPlayer);
+
+        // Empty Board
+        if (!(whitePieces.isEmpty() && blackPieces.isEmpty())) {
+            Collection<Move> whiteLegalMoves = getLegalMoves(whitePieces);
+            Collection<Move> blackLegalMoves = getLegalMoves(blackPieces);
+            this.whitePlayer = new WhitePlayer(this, whiteLegalMoves, blackLegalMoves);
+            this.blackPlayer = new BlackPlayer(this, blackLegalMoves, whiteLegalMoves);
+            this.currentPlayer = builder.nextMoveMaker.choosePlayer(this.whitePlayer, this.blackPlayer);
+        }
     }
 
 
@@ -158,6 +162,10 @@ public class Board {
             emptyBoard.add(Tile.createTile(i, builder.pieceMap.get(i)));
         }
         return emptyBoard;
+    }
+
+    public static Board createEmptyBoard() {
+        return new BoardBuilder().build();
     }
 
     public static Board createStandardBoard() {

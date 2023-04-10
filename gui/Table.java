@@ -66,7 +66,7 @@ public class Table {
     private static final Color destinationTileColor = Color.decode("#405e75");
 
     public Table() {
-        this.gameBoard = Board.createStandardBoard();
+        this.gameBoard = Board.createEmptyBoard();
         this.gameFrame = new JFrame("JChess");
         this.gameFrame.setJMenuBar(createTableMenuBar());
         this.gameHistoryPanel = new GameHistoryPanel();
@@ -91,6 +91,21 @@ public class Table {
 
     private JMenu createFileMenu() {
         JMenu fileMenu = new JMenu("File");
+
+        JMenuItem newGameMenuItem = new JMenuItem("New Game");
+        newGameMenuItem.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.out.println("Creating new game.");
+                gameBoard = Board.createStandardBoard();
+                lastMove = null;
+                boardPanel.drawBoard(gameBoard);
+            }
+            
+        });
+
+        
         JMenuItem openPGNMenuItem = new JMenuItem("Load PGN File");
         openPGNMenuItem.addActionListener(new ActionListener() {
             @Override
@@ -110,6 +125,7 @@ public class Table {
             
         });
 
+        fileMenu.add(newGameMenuItem);
         fileMenu.add(openPGNMenuItem);
         fileMenu.add(exitMenuItem);
         return fileMenu;
