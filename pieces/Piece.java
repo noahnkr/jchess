@@ -17,10 +17,11 @@ public abstract class Piece {
 
     private int cachedHashCode;
 
-    public Piece(PieceType pieceType, int position, Color color) {
+    public Piece(PieceType pieceType, int position, Color color, boolean isFirstMove) {
+        this.pieceType = pieceType;
         this.piecePosition = position;
         this.pieceColor = color;
-        this.isFirstMove = true;
+        this.isFirstMove = isFirstMove;
         this.cachedHashCode = computeHashCode();
     }
 
@@ -54,19 +55,23 @@ public abstract class Piece {
     }
 
     public boolean isFirstMove() {
-        return isFirstMove;
+        return this.isFirstMove;
     }
 
     public PieceType getPieceType() {
-        return pieceType;
+        return this.pieceType;
     }
 
     public int getPosition() {
-        return piecePosition;
+        return this.piecePosition;
     }
 
     public Color getColor() {
-        return pieceColor;
+        return this.pieceColor;
+    }
+
+    public int getPieceValue() {
+        return this.pieceType.getValue();
     }
 
     public abstract List<Move> calculateLegalMoves(Board board);
@@ -74,23 +79,31 @@ public abstract class Piece {
     public abstract Piece movePiece(Move move);
 
     public enum PieceType {
-        PAWN("P"),
-        ROOK("R"),
-        KNIGHT("K"),
-        BISHOP("B"),
-        QUEEN("Q"),
-        KING("K");
+        PAWN("P", 100),
+        KNIGHT("N", 300),
+        BISHOP("B", 300),
+        ROOK("R", 500),
+        QUEEN("Q", 900),
+        KING("K", 10000);
 
         private String pieceName;
 
-        PieceType(String pieceName) {
+        private int pieceValue;
+
+        PieceType(String pieceName, int pieceValue) {
             this.pieceName = pieceName;
+            this.pieceValue = pieceValue;
         }
 
         @Override
         public String toString() {
             return this.pieceName;
-        }     
+        }
+
+        public int getValue() {
+            return this.pieceValue;
+        }
+
     }
     
 }
