@@ -5,6 +5,6 @@ import board.Move;
 
 public interface MoveStrategy {
 
-    public Move execute(Board board, int depth);
+    public Move execute(Board board);
     
 }

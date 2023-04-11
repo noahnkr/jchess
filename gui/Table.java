@@ -9,8 +9,10 @@ import javax.swing.JLayeredPane;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -26,6 +28,9 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Observable;
+import java.util.Observer;
+import java.util.concurrent.ExecutionException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,8 +41,10 @@ import board.MoveTransition;
 import board.Tile;
 import board.Move.MoveFactory;
 import pieces.Piece;
+import player.ai.MiniMax;
+import player.ai.MoveStrategy;
 
-public class Table {
+public class Table extends Observable {
 
     private Board gameBoard;
 
@@ -45,14 +52,16 @@ public class Table {
     private BoardPanel boardPanel;
     private GameHistoryPanel gameHistoryPanel;
     private TakenPiecesPanel takenPiecesPanel;
+    private GameSetup gameSetup;
+
+    private MoveLog moveLog;
+    private Move lastMove;
+    private Move computerMove;
+    private Tile lastEnteredTile;
 
     private Tile sourceTile;
     private Tile destinationTile;
     private Piece movedPiece;
-
-    private MoveLog moveHistory;
-    private Move lastMove;
-    private Tile lastEnteredTile;
 
     private boolean highlightLegalMoves;
 
@@ -65,8 +74,10 @@ public class Table {
     private static final Color sourceTileColor = Color.decode("#63839c");
     private static final Color destinationTileColor = Color.decode("#405e75");
 
-    public Table() {
-        this.gameBoard = Board.createEmptyBoard();
+    private static Table INSTANCE = new Table();
+
+    private Table() {
+        this.gameBoard = Board.createStandardBoard();
         this.gameFrame = new JFrame("JChess");
         this.gameFrame.setJMenuBar(createTableMenuBar());
         this.gameHistoryPanel = new GameHistoryPanel();
@@ -75,39 +86,41 @@ public class Table {
         this.gameFrame.setSize(OUTER_FRAME_DIMENSION);
         this.gameFrame.setResizable(false);
         this.boardPanel = new BoardPanel();
-        this.moveHistory = new MoveLog();
+        this.moveLog = new MoveLog();
+        this.addObserver(new TableGameAIWatcher());
+        this.gameSetup = new GameSetup(this.gameFrame, true);
         this.gameFrame.add(this.takenPiecesPanel, BorderLayout.WEST);
         this.gameFrame.add(this.gameHistoryPanel, BorderLayout.EAST);
         this.gameFrame.add(this.boardPanel, BorderLayout.CENTER);
         this.gameFrame.setVisible(true);
     }
 
+    public static Table get() {
+        return INSTANCE;
+    }
+
+    public void show() {
+        Table.get().getMoveLog().clear();
+        Table.get().getGameHistoryPanel().redo(this.gameBoard, Table.get().getMoveLog());
+        Table.get().getTakenPiecesPanel().redo(Table.get().getMoveLog());
+        Table.get().getBoardPanel().drawBoard(Table.get().getGameBoard());
+    }
+
+    private Board getGameBoard() {
+        return this.gameBoard;
+    }
+
     private JMenuBar createTableMenuBar() {
         JMenuBar tableMenuBar = new JMenuBar();
         tableMenuBar.add(createFileMenu());
         tableMenuBar.add(createPreferencesMenu());
+        tableMenuBar.add(createOptionsMenu());
         return tableMenuBar;
     }
 
     private JMenu createFileMenu() {
         JMenu fileMenu = new JMenu("File");
 
-        JMenuItem newGameMenuItem = new JMenuItem("New Game");
-        newGameMenuItem.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // TODO: Move History and Taken Pieces only clears after move
-                System.out.println("Creating new game.");
-                gameBoard = Board.createStandardBoard();
-                moveHistory.clear();
-                lastMove = null;
-                boardPanel.drawBoard(gameBoard);
-            }
-            
-        });
-
-        
         JMenuItem openPGNMenuItem = new JMenuItem("Load PGN File");
         openPGNMenuItem.addActionListener(new ActionListener() {
             @Override
@@ -127,7 +140,6 @@ public class Table {
             
         });
 
-        fileMenu.add(newGameMenuItem);
         fileMenu.add(openPGNMenuItem);
         fileMenu.add(exitMenuItem);
         return fileMenu;
@@ -148,6 +160,117 @@ public class Table {
 
         preferencesMenu.add(highlightLegalMovesMenuItem);
         return preferencesMenu;
+    }
+
+    private JMenu createOptionsMenu() {
+        JMenu optionsMenu = new JMenu("Options");
+
+        JMenuItem setupGameMenuItem = new JMenuItem("Setup Game");
+        setupGameMenuItem.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Table.get().getGameSetup().promptUser();
+                Table.get().setupUpdate(Table.get().getGameSetup());
+                
+            }
+            
+        });
+
+        optionsMenu.add(setupGameMenuItem);
+
+        return optionsMenu;
+    }
+
+    public void updateGameBoard(Board board) {
+        this.gameBoard = board;
+    }
+
+    public void updateComputerMove(Move move) {
+        this.computerMove = move;
+    }
+
+    private BoardPanel getBoardPanel() {
+        return this.boardPanel;
+    }
+
+    private MoveLog getMoveLog() {
+        return this.moveLog;
+    }
+
+    private GameHistoryPanel getGameHistoryPanel() {
+        return this.gameHistoryPanel;
+    }
+
+    private TakenPiecesPanel getTakenPiecesPanel() {
+        return this.takenPiecesPanel;
+    }
+
+    private void moveMadeUpdate(PlayerType playerType) {
+        setChanged();
+        notifyObservers(playerType);
+    }
+
+    private GameSetup getGameSetup() {
+        return this.gameSetup;
+    }
+
+    private void setupUpdate(GameSetup gameSetup) {
+        setChanged();
+        notifyObservers(gameSetup);
+        
+    }
+
+    private static class TableGameAIWatcher implements Observer {
+
+        @Override
+        public void update(Observable o, Object arg) {
+            if (Table.get().getGameSetup().isAIPlayer(Table.get().getGameBoard().currentPlayer()) &&
+                                      !Table.get().getGameBoard().currentPlayer().isInCheckMate() &&
+                                      !Table.get().getGameBoard().currentPlayer().isInStaleMate()) {
+                AIThinkTank thinkTank = new AIThinkTank();
+                thinkTank.execute();
+            }
+
+            if (Table.get().getGameBoard().currentPlayer().isInCheckMate()) {
+                System.out.println("Game Over, " + Table.get().getGameBoard().currentPlayer().getColor() + "is in checkmate.");
+                //JOptionPane.showMessageDialog(Table.get().getBoardPanel(), arg);
+            }
+
+            if (Table.get().getGameBoard().currentPlayer().isInStaleMate()) {
+                System.out.println("Game Over, stalemate.");
+                //JOptionPane.showMessageDialog(Table.get().getBoardPanel(), arg);
+            }
+        }
+    }
+
+    private static class AIThinkTank extends SwingWorker<Move, String> {
+
+        private AIThinkTank() {}
+
+        @Override
+        protected Move doInBackground() throws Exception {
+            MoveStrategy minimax = new MiniMax(4);
+            Move bestMove = minimax.execute(Table.get().getGameBoard());
+            return bestMove;
+        }
+
+        @Override
+        public void done() {
+            try {
+                Move bestMove = get();
+                Table.get().updateComputerMove(bestMove);
+                Table.get().updateGameBoard(Table.get().getGameBoard().currentPlayer().makeMove(bestMove).getTransitionBoard());
+                Table.get().getMoveLog().addMove(bestMove);
+                Table.get().getGameHistoryPanel().redo(Table.get().getGameBoard(), Table.get().getMoveLog());
+                Table.get().getTakenPiecesPanel().redo(Table.get().getMoveLog());
+                Table.get().getBoardPanel().drawBoard(Table.get().getGameBoard());
+                Table.get().moveMadeUpdate(PlayerType.COMPUTER);
+
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     
@@ -205,71 +328,71 @@ public class Table {
 
                 @Override
                 public void mousePressed(MouseEvent e) {
-                    if (sourceTile == null) {
-                        sourceTile = gameBoard.getTile(tileId);
-                        movedPiece = sourceTile.getPiece();
-                        if (movedPiece == null) {
+                    if (!gameSetup.isAIPlayer(gameBoard.currentPlayer())) {                    
+                        if (sourceTile == null) {
+                            sourceTile = gameBoard.getTile(tileId);
+                            movedPiece = sourceTile.getPiece();
+                            if (movedPiece == null) {
+                                clearTileState();
+                            } else {
+                                setBackground(sourceTileColor);
+                                boardPanel.drawBoard(gameBoard);
+                            } 
+                        } else if (sourceTile.getTileCoordinate() == tileId) {
                             clearTileState();
                         } else {
-                            setBackground(sourceTileColor);
-                            boardPanel.drawBoard(gameBoard);
-                            /*try {
-                                String movedPieceImagePath = movedPiece.getColor().name().toLowerCase() + "_" + 
-                                                   movedPiece.getClass().getSimpleName().toLowerCase() + ".png";
-                                BufferedImage movedPieceBufferedImage = ImageIO.read(new File("./gui/assets/piece_icons/" + movedPieceImagePath));
-                                Image movedPieceImage = movedPieceBufferedImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-                            } catch (IOException ex) {
-                                ex.printStackTrace();
-                            }*/
-                        } 
-                    } else if (sourceTile.getTileCoordinate() == tileId) {
-                        clearTileState();
-                    } else {
-                        destinationTile = gameBoard.getTile(tileId);
+                            destinationTile = gameBoard.getTile(tileId);
+                        }
                     }
                 }
 
                 @Override
                 public void mouseReleased(MouseEvent e) {
-                    if (sourceTile != null) {
-                        if (sourceTile.getTileCoordinate() != tileId) {
-                            Move move = MoveFactory.createMove(gameBoard, 
-                                                        sourceTile.getTileCoordinate(), 
-                                                        destinationTile.getTileCoordinate());
-                            MoveTransition transition = gameBoard.currentPlayer().makeMove(move);
-                            if (transition.getMoveStatus().isDone()) {
-                                gameBoard = transition.getTransitionBoard();
-                                moveHistory.addMove(move); 
-                                setBackground(destinationTileColor);
-                                lastMove = move;
-                        
+                    if (!gameSetup.isAIPlayer(gameBoard.currentPlayer())) {    
+                        if (sourceTile != null) {
+                            if (sourceTile.getTileCoordinate() != tileId) {
+                                Move move = MoveFactory.createMove(gameBoard, 
+                                                            sourceTile.getTileCoordinate(), 
+                                                            destinationTile.getTileCoordinate());
+                                MoveTransition transition = gameBoard.currentPlayer().makeMove(move);
+                                if (transition.getMoveStatus().isDone()) {
+                                    gameBoard = transition.getTransitionBoard();
+                                    moveLog.addMove(move); 
+                                    setBackground(destinationTileColor);
+                                    lastMove = move;
+                            
+                                }
+                                clearTileState();
+                            } else if (sourceTile.getTileCoordinate() != lastEnteredTile.getTileCoordinate()) {
+                                destinationTile = lastEnteredTile;
+                                Move move = MoveFactory.createMove(gameBoard, 
+                                                            sourceTile.getTileCoordinate(), 
+                                                            destinationTile.getTileCoordinate());
+                                MoveTransition transition = gameBoard.currentPlayer().makeMove(move);
+                                if (transition.getMoveStatus().isDone()) {
+                                    gameBoard = transition.getTransitionBoard();
+                                    moveLog.addMove(move); 
+                                    setBackground(destinationTileColor);
+                                    lastMove = move;
+                                }
+                                clearTileState();
                             }
-                            clearTileState();
-                        } else if (sourceTile.getTileCoordinate() != lastEnteredTile.getTileCoordinate()) {
-                            destinationTile = lastEnteredTile;
-                            Move move = MoveFactory.createMove(gameBoard, 
-                                                        sourceTile.getTileCoordinate(), 
-                                                        destinationTile.getTileCoordinate());
-                            MoveTransition transition = gameBoard.currentPlayer().makeMove(move);
-                            if (transition.getMoveStatus().isDone()) {
-                                gameBoard = transition.getTransitionBoard();
-                                moveHistory.addMove(move); 
-                                setBackground(destinationTileColor);
-                                lastMove = move;
-                            }
-                            clearTileState();
                         }
-                    }
-                        
-                    SwingUtilities.invokeLater(new Runnable() {
+                            
+                        SwingUtilities.invokeLater(new Runnable() {
 
-                        @Override
-                        public void run() {
-                            gameHistoryPanel.redo(gameBoard, moveHistory);
-                            takenPiecesPanel.redo(moveHistory);
-                            boardPanel.drawBoard(gameBoard);
-                        }
-                    });
+                            @Override
+                            public void run() {
+                                gameHistoryPanel.redo(gameBoard, moveLog);
+                                takenPiecesPanel.redo(moveLog);
+                                if (gameSetup.isAIPlayer(gameBoard.currentPlayer())) {
+                                    Table.get().moveMadeUpdate(PlayerType.HUMAN);
+                                }
+
+                                boardPanel.drawBoard(gameBoard);
+                            }
+                        });
+                    }
                 }
 
                 @Override
@@ -284,24 +407,10 @@ public class Table {
             addMouseMotionListener(new MouseAdapter() {
 
                 @Override
-                public void mouseDragged(MouseEvent e) {
-                    /*if (movedPiece != null) {
-                        drawPiece = false;
-
-                        SwingUtilities.invokeLater(new Runnable() {
-                            @Override
-                            public void run() {
-                                boardPanel.drawBoard(gameBoard);
-                                
-                            }
-                        });
-                    }*/      
-                }
+                public void mouseDragged(MouseEvent e) {}
 
                 @Override
                 public void mouseMoved(MouseEvent e) {}
-
-                
 
             });
             validate();
@@ -312,7 +421,6 @@ public class Table {
             assignTileColor(board);
             assignPiece(board);
             highlightLegalMoves(board);
-            //highlightSelectedTile(board);
             highlightLastMove(board);
             validate();
             repaint();
@@ -342,14 +450,12 @@ public class Table {
         }
 
         private void highlightLastMove(Board board) {
-            // TODO: fix hgighlighting with flipped board
             if (lastMove != null) {
                 boardPanel.getTilePanel(lastMove.getCurrentCoordinate()).setBackground(sourceTileColor);
                 boardPanel.getTilePanel(lastMove.getDestinationCoordinate()).setBackground(destinationTileColor);
             }
         }
 
-        
         private Collection<Move> pieceLegalMoves(Board board) {
             if (movedPiece != null && movedPiece.getColor() == board.currentPlayer().getColor()) {
                 return movedPiece.calculateLegalMoves(board);
@@ -357,17 +463,6 @@ public class Table {
             return Collections.emptyList();
         }
 
-        private void highlightSelectedTile(Board board) {
-            try {
-                BufferedImage hoveredTileIcon = ImageIO.read(new File("./gui/assets/move_highlighting/hovered_tile.png"));
-                Image scaledHoveredTileIcon = hoveredTileIcon.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-                JLabel hoveredtile = new JLabel(new ImageIcon(scaledHoveredTileIcon));
-                add(hoveredtile, Integer.valueOf(2));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-        }
 
         private void assignTileColor(Board board) {
             boolean isLight = ((tileId + tileId / 8) % 2 == 0);
@@ -436,6 +531,11 @@ public class Table {
         public boolean removeMove(Move move) {
             return moves.remove(move);
         }
+    }
+
+    public enum PlayerType {
+        HUMAN,
+        COMPUTER
     }
     
 }

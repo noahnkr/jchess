@@ -3,7 +3,6 @@ package board;
 import board.Board.BoardBuilder;
 import pieces.Pawn;
 import pieces.Piece;
-import pieces.Queen;
 import pieces.Rook;
 
 public abstract class Move {
