@@ -26,15 +26,15 @@ public class MiniMax implements MoveStrategy {
         int highestSeenValue = NEGATIVE_INFINITY;
         int lowestSeenValue = POSITIVE_INFINITY;
         int currentValue;
-        System.out.println(board.currentPlayer() + " THINKING with depth = " + searchDepth);
+        System.out.println(board.currentPlayer().getColor() + " is THINKING with depth = " + searchDepth);
 
         int numMoves = board.currentPlayer().getLegalMoves().size();
         for (Move move : board.currentPlayer().getLegalMoves()) {
             MoveTransition moveTransition = board.currentPlayer().makeMove(move);
             if (moveTransition.getMoveStatus().isDone()) {
                 currentValue = board.currentPlayer().getColor().isWhite() ?
-                               minimize(moveTransition.getTransitionBoard(), searchDepth - 1) :
-                               maximize(moveTransition.getTransitionBoard(), searchDepth - 1);
+                               minimize(moveTransition.getTransitionBoard(), searchDepth - 1, POSITIVE_INFINITY, NEGATIVE_INFINITY) :
+                               maximize(moveTransition.getTransitionBoard(), searchDepth - 1, NEGATIVE_INFINITY, POSITIVE_INFINITY);
 
                 if (board.currentPlayer().getColor().isWhite() && currentValue >= highestSeenValue) {
                     highestSeenValue = currentValue;
@@ -50,7 +50,7 @@ public class MiniMax implements MoveStrategy {
         return bestMove;
     }
 
-    public int minimize(Board board, int depth) {
+    public int minimize(Board board, int depth, int alpha, int beta) {
         if (depth == 0 || isEndGameScenario(board)) {
             return this.evaluator.evaluate(board, depth);
         }
@@ -59,9 +59,11 @@ public class MiniMax implements MoveStrategy {
         for (Move move : board.currentPlayer().getLegalMoves()) {
             MoveTransition moveTransition = board.currentPlayer().makeMove(move);
             if (moveTransition.getMoveStatus().isDone()) {
-                int currentValue = maximize(moveTransition.getTransitionBoard(), depth - 1);
-                if (currentValue <= lowestSeenValue) {
-                    lowestSeenValue = currentValue;
+                int currentValue = maximize(moveTransition.getTransitionBoard(), depth - 1, alpha, beta);
+                lowestSeenValue = Math.min(lowestSeenValue, currentValue);
+                beta = Math.min(beta, currentValue);
+                if (beta <= alpha) {
+                    break;
                 }
             }
         }
@@ -69,7 +71,7 @@ public class MiniMax implements MoveStrategy {
 
     }
 
-    public int maximize(Board board, int depth) {
+    public int maximize(Board board, int depth, int alpha, int beta) {
         if (depth == 0 || isEndGameScenario(board)) {
             return this.evaluator.evaluate(board, depth);
         }
@@ -78,9 +80,11 @@ public class MiniMax implements MoveStrategy {
         for (Move move : board.currentPlayer().getLegalMoves()) {
             MoveTransition moveTransition = board.currentPlayer().makeMove(move);
             if (moveTransition.getMoveStatus().isDone()) {
-                int currentValue = minimize(moveTransition.getTransitionBoard(), depth - 1);
-                if (currentValue >= highestSeenValue) {
-                    highestSeenValue = currentValue;
+                int currentValue = minimize(moveTransition.getTransitionBoard(), depth - 1, alpha, beta);
+                highestSeenValue = Math.max(highestSeenValue, currentValue);
+                alpha = Math.max(alpha, currentValue);
+                if (beta <= alpha) {
+                    break;
                 }
             }
         }

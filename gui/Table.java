@@ -69,10 +69,12 @@ public class Table extends Observable {
     private static final Dimension BOARD_PANEL_DIMENSION = new Dimension(400, 350);
     private static final Dimension TILE_PANEL_DIMENSION = new Dimension(100, 100);
 
-    private static final Color lightTileColor = Color.decode("#2d333b");
-    private static final Color darkTileColor =  Color.decode("#697484");
-    private static final Color sourceTileColor = Color.decode("#63839c");
-    private static final Color destinationTileColor = Color.decode("#405e75");
+    private static final Color LIGHT_TILE_COLOR = Color.decode("#2d333b");
+    private static final Color DARK_TILE_COLOR =  Color.decode("#697484");
+    private static final Color SOURCE_TILE_COLOR = Color.decode("#63839c");
+    private static final Color DESTINATION_TILE_COLOR = Color.decode("#405e75");
+    private static final Color CHECK_COLOR = Color.decode("#ff9640");
+    private static final Color CHECK_MATE_COLOR = Color.decode("#ff4040");
 
     private static Table INSTANCE = new Table();
 
@@ -190,6 +192,10 @@ public class Table extends Observable {
         this.computerMove = move;
     }
 
+    private void setLastMove(Move move) {
+        this.lastMove = move;
+    }
+
     private BoardPanel getBoardPanel() {
         return this.boardPanel;
     }
@@ -233,13 +239,13 @@ public class Table extends Observable {
             }
 
             if (Table.get().getGameBoard().currentPlayer().isInCheckMate()) {
-                System.out.println("Game Over, " + Table.get().getGameBoard().currentPlayer().getColor() + "is in checkmate.");
-                //JOptionPane.showMessageDialog(Table.get().getBoardPanel(), arg);
+                System.out.println("Game Over, " + Table.get().getGameBoard().currentPlayer().getColor() + " is in checkmate.");
+                JOptionPane.showMessageDialog(Table.get().getBoardPanel(), ("Game Over, " + Table.get().getGameBoard().currentPlayer().getColor() + " is in checkmate."));
             }
 
             if (Table.get().getGameBoard().currentPlayer().isInStaleMate()) {
                 System.out.println("Game Over, stalemate.");
-                //JOptionPane.showMessageDialog(Table.get().getBoardPanel(), arg);
+                JOptionPane.showMessageDialog(Table.get().getBoardPanel(), "Game Over, stalemate.");
             }
         }
     }
@@ -260,6 +266,7 @@ public class Table extends Observable {
             try {
                 Move bestMove = get();
                 Table.get().updateComputerMove(bestMove);
+                Table.get().setLastMove(bestMove);
                 Table.get().updateGameBoard(Table.get().getGameBoard().currentPlayer().makeMove(bestMove).getTransitionBoard());
                 Table.get().getMoveLog().addMove(bestMove);
                 Table.get().getGameHistoryPanel().redo(Table.get().getGameBoard(), Table.get().getMoveLog());
@@ -335,7 +342,7 @@ public class Table extends Observable {
                             if (movedPiece == null) {
                                 clearTileState();
                             } else {
-                                setBackground(sourceTileColor);
+                                setBackground(SOURCE_TILE_COLOR);
                                 boardPanel.drawBoard(gameBoard);
                             } 
                         } else if (sourceTile.getTileCoordinate() == tileId) {
@@ -358,7 +365,7 @@ public class Table extends Observable {
                                 if (transition.getMoveStatus().isDone()) {
                                     gameBoard = transition.getTransitionBoard();
                                     moveLog.addMove(move); 
-                                    setBackground(destinationTileColor);
+                                    setBackground(DESTINATION_TILE_COLOR);
                                     lastMove = move;
                             
                                 }
@@ -372,7 +379,7 @@ public class Table extends Observable {
                                 if (transition.getMoveStatus().isDone()) {
                                     gameBoard = transition.getTransitionBoard();
                                     moveLog.addMove(move); 
-                                    setBackground(destinationTileColor);
+                                    setBackground(DESTINATION_TILE_COLOR);
                                     lastMove = move;
                                 }
                                 clearTileState();
@@ -422,6 +429,8 @@ public class Table extends Observable {
             assignPiece(board);
             highlightLegalMoves(board);
             highlightLastMove(board);
+            highlightCheck(board);
+            highlightCheckMate(board);
             validate();
             repaint();
         }
@@ -451,8 +460,20 @@ public class Table extends Observable {
 
         private void highlightLastMove(Board board) {
             if (lastMove != null) {
-                boardPanel.getTilePanel(lastMove.getCurrentCoordinate()).setBackground(sourceTileColor);
-                boardPanel.getTilePanel(lastMove.getDestinationCoordinate()).setBackground(destinationTileColor);
+                boardPanel.getTilePanel(lastMove.getCurrentCoordinate()).setBackground(SOURCE_TILE_COLOR);
+                boardPanel.getTilePanel(lastMove.getDestinationCoordinate()).setBackground(DESTINATION_TILE_COLOR);
+            }
+        }
+
+        private void highlightCheck(Board board) {
+            if (board.currentPlayer().isInCheck()) {
+                boardPanel.getTilePanel(board.currentPlayer().getPlayerKing().getPosition()).setBackground(CHECK_COLOR);
+            }
+        }
+
+        private void highlightCheckMate(Board board) {
+            if (board.currentPlayer().isInCheckMate()) {
+                boardPanel.getTilePanel(board.currentPlayer().getPlayerKing().getPosition()).setBackground(CHECK_MATE_COLOR);
             }
         }
 
@@ -466,9 +487,9 @@ public class Table extends Observable {
 
         private void assignTileColor(Board board) {
             boolean isLight = ((tileId + tileId / 8) % 2 == 0);
-            setBackground(isLight ? lightTileColor : darkTileColor);
+            setBackground(isLight ? LIGHT_TILE_COLOR : DARK_TILE_COLOR);
             if (movedPiece != null && movedPiece.getColor() == board.currentPlayer().getColor()) {
-                boardPanel.getTilePanel(sourceTile.getTileCoordinate()).setBackground(sourceTileColor);
+                boardPanel.getTilePanel(sourceTile.getTileCoordinate()).setBackground(SOURCE_TILE_COLOR);
             }
         }
 
