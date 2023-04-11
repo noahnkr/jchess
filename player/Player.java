@@ -34,6 +34,7 @@ public abstract class Player {
                 return (King) piece;
             }
         }
+
         throw new RuntimeException("No King on board");
     }
 

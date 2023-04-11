@@ -13,16 +13,6 @@ import player.WhitePlayer;
 import pieces.*;
 
 public class Board {
-
-    private List<Tile> gameBoard;
-
-    private Collection<Piece> whitePieces;
-    private Collection<Piece> blackPieces;
-
-    private WhitePlayer whitePlayer;
-    private BlackPlayer blackPlayer;
-    private Player currentPlayer;
-
     public static final int NUM_TILES = 64;
     public static final int NUM_TILES_PER_ROW = 8;
 
@@ -35,20 +25,36 @@ public class Board {
     public static final boolean[] SEVENTH_COLUMN = initColumn(6);
     public static final boolean[] EIGHTH_COLUMN = initColumn(7);
 
+    public static final boolean[] FIRST_ROW = initRow(0);
     public static final boolean[] SECOND_ROW = initRow(8);
     public static final boolean[] SEVENTH_ROW = initRow(48);
+    public static final boolean[] EIGHTH_ROW = initRow(56);
+
+    private List<Tile> gameBoard;
+
+    private Collection<Piece> whitePieces;
+    private Collection<Piece> blackPieces;
+
+    private WhitePlayer whitePlayer;
+    private BlackPlayer blackPlayer;
+    private Player currentPlayer;
+
+    private Pawn enPassantPawn;
 
     public Board(BoardBuilder builder) {
         this.gameBoard = initializeBoard(builder);
         this.whitePieces = getActivePieces(gameBoard, Color.WHITE);
         this.blackPieces = getActivePieces(gameBoard, Color.BLACK);
+        this.enPassantPawn = builder.enPassantPawn;
 
-        Collection<Move> whiteLegalMoves = getLegalMoves(whitePieces);
-        Collection<Move> blackLegalMoves = getLegalMoves(blackPieces);
-
-        this.whitePlayer = new WhitePlayer(this, whiteLegalMoves, blackLegalMoves);
-        this.blackPlayer = new BlackPlayer(this, blackLegalMoves, whiteLegalMoves);
-        this.currentPlayer = builder.nextMoveMaker.choosePlayer(this.whitePlayer, this.blackPlayer);
+        // Empty Board
+        if (!(whitePieces.isEmpty() && blackPieces.isEmpty())) {
+            Collection<Move> whiteLegalMoves = getLegalMoves(whitePieces);
+            Collection<Move> blackLegalMoves = getLegalMoves(blackPieces);
+            this.whitePlayer = new WhitePlayer(this, whiteLegalMoves, blackLegalMoves);
+            this.blackPlayer = new BlackPlayer(this, blackLegalMoves, whiteLegalMoves);
+            this.currentPlayer = builder.nextMoveMaker.choosePlayer(this.whitePlayer, this.blackPlayer);
+        }
     }
 
 
@@ -134,6 +140,10 @@ public class Board {
         return gameBoard.get(coordinate);
     }
 
+    public Pawn getEnPassantPawn() {
+        return enPassantPawn;
+    }
+
     public static int getCoordinateAtPosition(String position) {
         return POSITION_TO_COORDINATE.get(position);
     }
@@ -152,6 +162,10 @@ public class Board {
             emptyBoard.add(Tile.createTile(i, builder.pieceMap.get(i)));
         }
         return emptyBoard;
+    }
+
+    public static Board createEmptyBoard() {
+        return new BoardBuilder().build();
     }
 
     public static Board createStandardBoard() {
@@ -201,6 +215,7 @@ public class Board {
     public static class BoardBuilder {
         Map<Integer, Piece> pieceMap;
         Color nextMoveMaker;
+        Pawn enPassantPawn;
 
         public BoardBuilder() { this.pieceMap = new HashMap<>(); }
 
@@ -218,8 +233,8 @@ public class Board {
             return new Board(this);
         }
 
-        public void setEnPassant(Pawn movedPawn) {
-            
+        public void setEnPassantPawn(Pawn enPassantPawn) {
+            this.enPassantPawn = enPassantPawn;
         }
     }
 

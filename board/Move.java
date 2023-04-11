@@ -3,6 +3,7 @@ package board;
 import board.Board.BoardBuilder;
 import pieces.Pawn;
 import pieces.Piece;
+import pieces.Queen;
 import pieces.Rook;
 
 public abstract class Move {
@@ -77,6 +78,10 @@ public abstract class Move {
 
     public Piece getMovedPiece() {
         return movedPiece;
+    }
+
+    public Piece getAttackedPiece() {
+        return null;
     }
 
     public Board execute() {
@@ -167,30 +172,23 @@ public abstract class Move {
         }
     }
 
+    public static class BasicAttackMove extends AttackMove {
+
+        public BasicAttackMove(Board board, Piece movedPiece, Piece attackedPiece, int destinationCoordinate) {
+            super(board, movedPiece, attackedPiece, destinationCoordinate);
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return this == other || other instanceof BasicAttackMove && super.equals(other);
+        }
+        
+    }
+
     public static class PawnMove extends Move {
 
         public PawnMove(Board board, Piece movedPiece, int destinationCoordinate) {
             super(board, movedPiece, destinationCoordinate);
-        }
-
-        @Override
-        public Board execute() {
-            BoardBuilder builder = new BoardBuilder();
-            for (Piece piece : this.board.currentPlayer().getActivePieces()) {
-                if (!this.movedPiece.equals(piece)) {
-                    builder.setPiece(piece);
-                }
-            }
-
-            for (Piece piece : this.board.currentPlayer().getOpponent().getActivePieces()) {
-                builder.setPiece(piece);
-            }
-
-            Pawn movedPawn = (Pawn) this.movedPiece.movePiece(this);
-            builder.setPiece(movedPawn);
-            builder.setEnPassant(movedPawn);
-            builder.setMoveMaker(this.board.currentPlayer().getOpponent().getColor());
-            return builder.build();
         }
 
         @Override
@@ -205,10 +203,131 @@ public abstract class Move {
         
     }
 
+    public static class PawnPromotion extends PawnMove {
+
+        Pawn promotedPawn;
+
+        public PawnPromotion(Board board, Piece movedPiece, int destinationCoordinate) {
+            super(board, movedPiece, destinationCoordinate);
+            this.promotedPawn = (Pawn) movedPiece;
+        }
+
+        @Override
+        public Board execute() {
+            BoardBuilder builder = new BoardBuilder();
+
+            for (Piece piece : board.currentPlayer().getActivePieces()) {
+                if (!this.promotedPawn.equals(piece)) {
+                    builder.setPiece(piece);
+                }
+            }
+
+            for (Piece piece : board.currentPlayer().getOpponent().getActivePieces()) {
+                builder.setPiece(piece);
+            }
+
+            builder.setPiece(this.promotedPawn.getPromotedPiece().movePiece(this));
+            builder.setMoveMaker(board.currentPlayer().getOpponent().getColor());
+            return builder.build();
+            
+        }
+
+        @Override
+        public boolean equals(final Object other) {
+            return this == other || other instanceof PawnPromotion && (super.equals(other));
+        }
+
+        @Override
+        public boolean isAttackMove() {
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            return Board.getPositionAtCoordinate(destinationCoordinate) + "=Q";
+        }
+        
+    }
+
+    public static class PawnAttackPromotion extends PawnAttackMove {
+
+        Pawn promotedPawn;
+
+        public PawnAttackPromotion(Board board, Piece movedPiece, Piece attackedPiece, int destinationCoordinate) {
+            super(board, movedPiece, attackedPiece, destinationCoordinate);
+            this.promotedPawn = (Pawn) movedPiece;
+        }
+
+        @Override
+        public Board execute() {
+            BoardBuilder builder = new BoardBuilder();
+
+            for (Piece piece : board.currentPlayer().getActivePieces()) {
+                if (!this.promotedPawn.equals(piece)) {
+                    builder.setPiece(piece);
+                }
+            }
+
+            for (Piece piece : board.currentPlayer().getOpponent().getActivePieces()) {
+                if (!super.getAttackedPiece().equals(piece)) {
+                    builder.setPiece(piece);
+                }
+                
+            }
+
+            builder.setPiece(this.promotedPawn.getPromotedPiece().movePiece(this));
+            builder.setMoveMaker(board.currentPlayer().getOpponent().getColor());
+            return builder.build();
+            
+        }
+
+        @Override
+        public boolean equals(final Object other) {
+            return this == other || other instanceof PawnAttackPromotion && (super.equals(other));
+        }
+
+        @Override
+        public boolean isAttackMove() {
+            return true;
+        }
+
+        @Override
+        public Piece getAttackedPiece() {
+            return super.getAttackedPiece();
+        }
+
+        @Override
+        public String toString() {
+            return Board.getPositionAtCoordinate(destinationCoordinate) + "x=Q";
+        }
+
+
+        
+    }
+
     public static class PawnJump extends Move {
 
         public PawnJump(Board board, Piece movedPiece, int destinationCoordinate) {
             super(board, movedPiece, destinationCoordinate);
+        }
+
+        @Override
+        public Board execute() {
+            BoardBuilder builder = new BoardBuilder();
+            for (Piece piece : this.board.currentPlayer().getActivePieces()) {
+                if (!this.movedPiece.equals(piece)) {
+                    builder.setPiece(piece);
+                }
+            }
+            for (Piece piece : this.board.currentPlayer().getOpponent().getActivePieces()) {
+                builder.setPiece(piece);
+            }
+
+            Pawn movedPawn = (Pawn) this.movedPiece.movePiece(this);
+            builder.setPiece(movedPawn);
+            builder.setEnPassantPawn(movedPawn);
+            builder.setMoveMaker(this.board.currentPlayer().getOpponent().getColor());
+            return builder.build();
         }
 
         @Override
@@ -227,6 +346,11 @@ public abstract class Move {
 
         public PawnAttackMove(Board board, Piece movedPiece, Piece attackedPiece, int destinationCoordinate) {
             super(board, movedPiece, attackedPiece, destinationCoordinate);
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return this == other || other instanceof PawnAttackMove && super.equals(other);
         }
 
         @Override
@@ -249,9 +373,37 @@ public abstract class Move {
         }
 
         @Override
+        public Board execute() {
+            BoardBuilder builder = new BoardBuilder();
+            for (Piece piece : this.board.currentPlayer().getActivePieces()) {
+                if (!this.movedPiece.equals(piece)) {
+                    builder.setPiece(piece);
+                }
+            }
+
+            for (Piece piece : this.board.currentPlayer().getOpponent().getActivePieces()) {
+                if (!getAttackedPiece().equals(piece)) {
+                    builder.setPiece(piece);
+                }
+            }
+
+            Pawn movedPawn = (Pawn) this.movedPiece.movePiece(this);
+            builder.setPiece(movedPawn);
+            builder.setEnPassantPawn(movedPawn);
+            builder.setMoveMaker(this.board.currentPlayer().getOpponent().getColor());
+            return builder.build();
+        }
+
+        @Override
         public boolean isAttackMove() {
             return true;
         }
+
+        @Override
+        public boolean equals(Object other) {
+            return this == other || other instanceof PawnEnPassantAttackMove && super.equals(other);
+        }
+        
 
     }
 
@@ -297,6 +449,30 @@ public abstract class Move {
         }
 
         @Override
+        public int hashCode() {
+            int result = super.hashCode();
+            result = 31 * result + this.castleRook.hashCode();
+            result = 31 * result * this.castleRookDestination;
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) {
+                return true;
+            }
+
+            if (!(other instanceof CastleMove)) {
+                return false;
+            }
+
+            CastleMove otherCastleMove = (CastleMove) other;
+            return super.equals(otherCastleMove) && this.castleRook.equals(otherCastleMove.getCastleRook());
+        }
+
+
+
+        @Override
         public boolean isAttackMove() {
             return false;
         }
@@ -308,6 +484,11 @@ public abstract class Move {
         public KingSideCastleMove(Board board, Piece movedPiece, int destinationCoordinate,
                                   Rook castleRook, int castleRookStart, int castleRookDestination) {
             super(board, movedPiece, destinationCoordinate, castleRook, castleRookStart, castleRookDestination);
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return this == other || other instanceof KingSideCastleMove && super.equals(other);
         }
 
         @Override
@@ -327,6 +508,11 @@ public abstract class Move {
         public QueenSideCastleMove(Board board, Piece movedPiece, int destinationCoordinate,
                                    Rook castleRook, int castleRookStart, int castleRookDestination) {
             super(board, movedPiece, destinationCoordinate, castleRook, castleRookStart, castleRookDestination);
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return this == other || other instanceof QueenSideCastleMove && super.equals(other);
         }
 
         @Override

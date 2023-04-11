@@ -7,6 +7,7 @@ import board.Board;
 import board.Move;
 import board.Tile;
 import board.Move.AttackMove;
+import board.Move.BasicAttackMove;
 import board.Move.BasicMove;
 
 public class Bishop extends Piece {
@@ -31,7 +32,6 @@ public class Bishop extends Piece {
     @Override
     public List<Move> calculateLegalMoves(Board board) {
         List<Move> legalMoves = new ArrayList<>();
-
         for (int currentMoveOffset : POSSIBLE_MOVE_OFFSET) {
             int destinationCoordinate = this.piecePosition;
             while (Board.isValidTileCoordinate(destinationCoordinate)) {
@@ -49,7 +49,7 @@ public class Bishop extends Piece {
                     } else {
                         Piece occupiedPiece = destinationTile.getPiece();
                         if (this.pieceColor != occupiedPiece.pieceColor) {
-                            legalMoves.add(new AttackMove(board, this, occupiedPiece, destinationCoordinate));
+                            legalMoves.add(new BasicAttackMove(board, this, occupiedPiece, destinationCoordinate));
                         }
                         break;
                     }
@@ -63,11 +63,11 @@ public class Bishop extends Piece {
     /* Exceptions to bishop move offset when its position is on the first or eighth column. */
 
     private static boolean isFirstColumnExclusion(int position, int offset) {
-        return Board.FIRST_COLUMN[position] && (offset == -9 || offset == -7);
+        return Board.FIRST_COLUMN[position] && (offset == -9 || offset == 7);
     }
 
     private static boolean isEighthColumnExclusion(int position, int offset) {
-        return Board.EIGHTH_COLUMN[position] && (offset == 7 || offset == 9);
+        return Board.EIGHTH_COLUMN[position] && (offset == -7 || offset == 9);
     }
 
     @Override
