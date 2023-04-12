@@ -23,9 +23,9 @@ public abstract class Player {
     public Player(Board board, Collection<Move> legalMoves, Collection<Move> opponentMoves) {
         this.board = board;
         this.playerKing = establishKing();
-        this.legalMoves = legalMoves;
+        this.isInCheck = !calculateAttacksOnTile(this.playerKing.getPosition(), opponentMoves).isEmpty();
         legalMoves.addAll(calculateKingCastles(legalMoves, opponentMoves));
-        this.isInCheck = !Player.calculateAttacksOnTile(this.playerKing.getPosition(), opponentMoves).isEmpty();
+        this.legalMoves = legalMoves;
     }
 
     private King establishKing() {
@@ -44,6 +44,16 @@ public abstract class Player {
 
     public Collection<Move> getLegalMoves() {
         return legalMoves;
+    }
+
+    public Collection<Move> getCastlingMoves() {
+        Collection<Move> castlingMoves = new ArrayList<Move>();
+        for (Move move : this.legalMoves) {
+            if (move.isCastlingMove()) {
+                castlingMoves.add(move);
+            }
+        }
+        return castlingMoves;
     }
 
     protected static Collection<Move> calculateAttacksOnTile(int piecePosition, Collection<Move> opponentMoves) {

@@ -6,7 +6,6 @@ import java.util.List;
 import board.Board;
 import board.Move;
 import board.Tile;
-import board.Move.AttackMove;
 import board.Move.BasicAttackMove;
 import board.Move.BasicMove;
 
