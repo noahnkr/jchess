@@ -13,12 +13,23 @@ public class King extends Piece {
 
     private static final int[] POSSIBLE_MOVE_OFFSET = { -9, -8, -7, -1, 1, 7, 8, 9 };
 
-    public King(int position, Color color) {
+    private boolean isCastled;
+    private boolean kingSideCastleCapable;
+    private boolean queenSideCastleCapable;
+
+    public King(int position, Color color, boolean kingSideCastleCapable, boolean queenSideCastleCapable) {
         super(PieceType.KING, position, color, true);
+        this.isCastled = false;
+        this.kingSideCastleCapable = kingSideCastleCapable;
+        this.queenSideCastleCapable = queenSideCastleCapable;
     }
 
-    public King(int position, Color color, boolean isFirstMove) {
+    public King(int position, Color color, boolean isFirstMove, boolean isCastled, boolean kingSideCastleCapable, boolean queenSideCastleCapable) {
         super(PieceType.KING, position, color, isFirstMove);
+        this.isCastled = isCastled;
+        this.kingSideCastleCapable = kingSideCastleCapable;
+        this.queenSideCastleCapable = queenSideCastleCapable;
+
     }
 
     @Override
@@ -57,6 +68,21 @@ public class King extends Piece {
         return legalMoves;
     }
 
+    public boolean isCastled() {
+        return this.isCastled;
+    }
+
+    public boolean isKingSideCastleCapable() {
+        return this.kingSideCastleCapable;
+
+    }
+
+    public boolean isQueenSideCastleCapable() {
+        return this.queenSideCastleCapable;
+
+    }
+
+
     private static boolean isFirstColumnExclusion(int position, int offset) {
         return Board.FIRST_COLUMN[position] && (offset == -9 || offset == -1 || offset == 7);
     }
@@ -67,7 +93,7 @@ public class King extends Piece {
 
     @Override
     public King movePiece(Move move) {
-        return new King(move.getDestinationCoordinate(), move.getMovedPiece().getColor());
+        return new King(move.getDestinationCoordinate(), move.getMovedPiece().getColor(), false, move.isCastlingMove(), false, false);
     }
     
 }

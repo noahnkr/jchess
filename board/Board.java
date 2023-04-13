@@ -68,7 +68,7 @@ public class Board {
                 sb.append(rowCounter + " | ");
                 rowCounter--;
             }
-            sb.append(prettyPrint(this.gameBoard.get(i)) + " ");
+            sb.append(this.gameBoard.get(i).toString() + " ");
             if ((i + 1) % NUM_TILES_PER_ROW == 0) {
                 sb.append("\n");
             }
@@ -77,15 +77,6 @@ public class Board {
         sb.append("    a b c d e f g h");
 
         return sb.toString();
-    }
-
-    private String prettyPrint(Tile tile) {
-        if (tile.isOccupied()) {
-            return tile.getPiece().getColor().isBlack() ? 
-                   tile.getPiece().toString().toLowerCase() : 
-                   tile.getPiece().toString();
-        }
-        return tile.toString();
     }
 
     public Player currentPlayer() {
@@ -175,7 +166,7 @@ public class Board {
         builder.setPiece(new Knight(1, Color.BLACK));
         builder.setPiece(new Bishop(2, Color.BLACK));
         builder.setPiece(new Queen(3, Color.BLACK));
-        builder.setPiece(new King(4, Color.BLACK));
+        builder.setPiece(new King(4, Color.BLACK, true, true));
         builder.setPiece(new Bishop(5, Color.BLACK));
         builder.setPiece(new Knight(6, Color.BLACK));
         builder.setPiece(new Rook(7, Color.BLACK));
@@ -201,7 +192,7 @@ public class Board {
         builder.setPiece(new Knight(57, Color.WHITE));
         builder.setPiece(new Bishop(58, Color.WHITE));
         builder.setPiece(new Queen(59, Color.WHITE));
-        builder.setPiece(new King(60, Color.WHITE));
+        builder.setPiece(new King(60, Color.WHITE, true, true));
         builder.setPiece(new Bishop(61, Color.WHITE));
         builder.setPiece(new Knight(62, Color.WHITE));
         builder.setPiece(new Rook(63, Color.WHITE));

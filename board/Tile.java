@@ -30,7 +30,7 @@ public abstract class Tile {
 
         @Override
         public String toString() {
-            return "·";
+            return "-";
         }
     
         @Override
@@ -55,7 +55,7 @@ public abstract class Tile {
 
         @Override
         public String toString() {
-            return tilePiece.toString();
+            return tilePiece.getColor().isWhite() ? tilePiece.toString() : tilePiece.toString().toLowerCase();
         }
 
         @Override

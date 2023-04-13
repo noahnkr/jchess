@@ -489,7 +489,7 @@ public class Table extends Observable {
                         if (move.getDestinationCoordinate() == this.tileId && sourceTile != null
                                                                            && sourceTile.getPiece().getPieceType() == PieceType.KING) {
                             try {
-                                Image legalMoveImage = ImageIO.read(new File("./gui/assets/move_highlighting/basic_move.png"));
+                                Image legalMoveImage = ImageIO.read(new File("./gui/assets/move_highlighting/basic_move.png")).getScaledInstance(100, 100, Image.SCALE_SMOOTH);
                                 //Image legalMoveImage = ImageIO.read(new URL("https://i.imgur.com/XuhdJv8.png")).getScaledInstance(100, 100, Image.SCALE_SMOOTH);
                                 JLabel legalMoves = new JLabel(new ImageIcon(legalMoveImage));
                                 legalMoves.setBounds(0, 0, 100, 100);
@@ -568,18 +568,37 @@ public class Table extends Observable {
 
     public static class MoveLog {
 
-        private List<Move> moves;
+        public class MoveStruct {
+            Move move;
+            String moveString;
+
+            public MoveStruct(Move move, String moveString) {
+                this.move = move;
+                this.moveString = moveString;
+            }
+        }
+
+        private List<MoveStruct> moves;
 
         public MoveLog() {
             this.moves = new ArrayList<>();
         }
 
-        public List<Move> getMoves() {
+        public List<MoveStruct> getMoves() {
             return moves;
         }
 
         public void addMove(Move move) {
-            this.moves.add(move);
+            this.moves.add(new MoveStruct(move, move.toString() + calculateCheckAndCheckMateHash(Table.get().getGameBoard())));
+        }
+
+        private static String calculateCheckAndCheckMateHash(Board board) {
+            if (board.currentPlayer().isInCheckMate()) {
+                return "#";
+            } else if (board.currentPlayer().isInCheck()) {
+                return "+";
+            }
+            return "";
         }
 
         public int size() {
@@ -594,9 +613,6 @@ public class Table extends Observable {
             this.moves.remove(index);
         }
 
-        public boolean removeMove(Move move) {
-            return moves.remove(move);
-        }
     }
 
     public enum PlayerType {

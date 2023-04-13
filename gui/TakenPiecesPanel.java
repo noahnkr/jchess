@@ -23,6 +23,7 @@ import board.Move;
 import board.Move.AttackMove;
 import pieces.*;
 import gui.Table.MoveLog;
+import gui.Table.MoveLog.MoveStruct;
 
 public class TakenPiecesPanel extends JPanel {
 
@@ -54,9 +55,9 @@ public class TakenPiecesPanel extends JPanel {
         List<Piece> whiteTakenPieces = new ArrayList<>();
         List<Piece> blackTakenPieces = new ArrayList<>();
 
-        for (Move move : moveLog.getMoves()) {
-            if (move.isAttackMove()) {
-                Piece takenPiece = ((AttackMove) move).getAttackedPiece();
+        for (MoveStruct moveStruct : moveLog.getMoves()) {
+            if (moveStruct.move.isAttackMove()) {
+                Piece takenPiece = ((AttackMove) moveStruct.move).getAttackedPiece();
                 if (takenPiece.getColor().isWhite()) {
                     whiteTakenPieces.add(takenPiece);
                 } else {

@@ -52,7 +52,7 @@ public class MiniMax implements MoveStrategy {
         long executionTime = System.currentTimeMillis() - startTIme;
         double executionTimeSeconds = executionTime / 1000.0;
         DecimalFormat df = new DecimalFormat("#.###");
-        System.out.println(board.currentPlayer().getColor() + " SELECTS " + bestMove.toString() + " [Execution Time = " + (Double.valueOf(df.format(executionTimeSeconds))) + "s]\n");
+        System.out.println(board.currentPlayer().toString() + " SELECTS " + bestMove.toString() + " [Execution Time = " + (Double.valueOf(df.format(executionTimeSeconds))) + "s]\n");
         return bestMove;
     }
 
@@ -108,7 +108,7 @@ public class MiniMax implements MoveStrategy {
         return "Minimax";
     }
 
-    
+
 
     
 }
