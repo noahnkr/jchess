@@ -102,6 +102,7 @@ public abstract class Move {
     }
 
     public abstract boolean isAttackMove();
+    public abstract boolean isCastlingMove();
 
     public static class BasicMove extends Move {
 
@@ -122,6 +123,11 @@ public abstract class Move {
 
         @Override
         public boolean isAttackMove() {
+            return false;
+        }
+
+        @Override
+        public boolean isCastlingMove() {
             return false;
         }
     }
@@ -169,6 +175,11 @@ public abstract class Move {
         public boolean isAttackMove() {
             return true;
         }
+
+        @Override
+        public boolean isCastlingMove() {
+            return false;
+        }
     }
 
     public static class BasicAttackMove extends AttackMove {
@@ -198,6 +209,11 @@ public abstract class Move {
         @Override
         public String toString() {
             return Board.getPositionAtCoordinate(this.destinationCoordinate);
+        }
+
+        @Override
+        public boolean isCastlingMove() {
+            return false;
         }
         
     }
@@ -304,7 +320,7 @@ public abstract class Move {
         
     }
 
-    public static class PawnJump extends Move {
+    public static class PawnJump extends PawnMove {
 
         public PawnJump(Board board, Piece movedPiece, int destinationCoordinate) {
             super(board, movedPiece, destinationCoordinate);
@@ -424,10 +440,6 @@ public abstract class Move {
             return this.castleRook;
         }
 
-        public boolean isCastlingMove() {
-            return true;
-        }
-
         @Override
         public Board execute() {
             BoardBuilder builder = new BoardBuilder();
@@ -469,11 +481,14 @@ public abstract class Move {
             return super.equals(otherCastleMove) && this.castleRook.equals(otherCastleMove.getCastleRook());
         }
 
-
-
         @Override
         public boolean isAttackMove() {
             return false;
+        }
+
+        @Override
+        public boolean isCastlingMove() {
+            return true;
         }
 
     }
@@ -494,12 +509,7 @@ public abstract class Move {
         public String toString() {
             return "O-O";
         }
-
-        @Override
-        public boolean isAttackMove() {
-            return false;
-        }
-        
+ 
     }
 
     public static class QueenSideCastleMove extends CastleMove {
@@ -517,11 +527,6 @@ public abstract class Move {
         @Override
         public String toString() {
             return "O-O-O";
-        }
-
-        @Override
-        public boolean isAttackMove() {
-            return false;
         }
 
     }
@@ -544,6 +549,11 @@ public abstract class Move {
 
         @Override
         public boolean isAttackMove() {
+            return false;
+        }
+
+        @Override
+        public boolean isCastlingMove() {
             return false;
         }
         

@@ -24,16 +24,18 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.List;
+import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.concurrent.ExecutionException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 
 import board.Board;
 import board.Move;
@@ -41,6 +43,7 @@ import board.MoveTransition;
 import board.Tile;
 import board.Move.MoveFactory;
 import pieces.Piece;
+import pieces.Piece.PieceType;
 import player.ai.MiniMax;
 import player.ai.MoveStrategy;
 
@@ -64,10 +67,12 @@ public class Table extends Observable {
     private Piece movedPiece;
 
     private boolean highlightLegalMoves;
+    private boolean gameStarted;
 
     private static final Dimension OUTER_FRAME_DIMENSION = new Dimension(1000, 800);
     private static final Dimension BOARD_PANEL_DIMENSION = new Dimension(400, 350);
     private static final Dimension TILE_PANEL_DIMENSION = new Dimension(100, 100);
+    private static final Map<String, Image> PIECE_ICON_MAP = setupPieceIconMap();
 
     private static final Color LIGHT_TILE_COLOR = Color.decode("#2d333b");
     private static final Color DARK_TILE_COLOR =  Color.decode("#697484");
@@ -85,6 +90,7 @@ public class Table extends Observable {
         this.gameHistoryPanel = new GameHistoryPanel();
         this.takenPiecesPanel = new TakenPiecesPanel();
         this.highlightLegalMoves = true;
+        this.gameStarted = false;
         this.gameFrame.setSize(OUTER_FRAME_DIMENSION);
         this.gameFrame.setResizable(false);
         this.boardPanel = new BoardPanel();
@@ -116,12 +122,23 @@ public class Table extends Observable {
         JMenuBar tableMenuBar = new JMenuBar();
         tableMenuBar.add(createFileMenu());
         tableMenuBar.add(createPreferencesMenu());
-        tableMenuBar.add(createOptionsMenu());
         return tableMenuBar;
     }
 
     private JMenu createFileMenu() {
         JMenu fileMenu = new JMenu("File");
+
+        JMenuItem newGameMenuItem = new JMenuItem("New Game");
+        newGameMenuItem.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Table.get().getGameSetup().promptUser();
+                Table.get().setupUpdate(Table.get().getGameSetup());
+                Table.get().getBoardPanel().drawBoard(Table.get().getGameBoard());
+            }
+            
+        });
 
         JMenuItem openPGNMenuItem = new JMenuItem("Load PGN File");
         openPGNMenuItem.addActionListener(new ActionListener() {
@@ -142,6 +159,7 @@ public class Table extends Observable {
             
         });
 
+        fileMenu.add(newGameMenuItem);
         fileMenu.add(openPGNMenuItem);
         fileMenu.add(exitMenuItem);
         return fileMenu;
@@ -164,24 +182,36 @@ public class Table extends Observable {
         return preferencesMenu;
     }
 
-    private JMenu createOptionsMenu() {
-        JMenu optionsMenu = new JMenu("Options");
+    private static Map<String, Image> setupPieceIconMap() {
+        Map<String, Image> pieceIconMap = new HashMap<>();
+        try {
+            pieceIconMap.put("white_pawn", ImageIO.read(new URL("https://i.imgur.com/9eI3GGO.png")));
+            pieceIconMap.put("white_knight", ImageIO.read(new URL("https://i.imgur.com/QCZ4y53.png")));
+            pieceIconMap.put("white_bishop", ImageIO.read(new URL("https://i.imgur.com/pHOTxDH.png")));
+            pieceIconMap.put("white_rook", ImageIO.read(new URL("https://i.imgur.com/b3qm61t.png")));
+            pieceIconMap.put("white_queen", ImageIO.read(new URL("https://i.imgur.com/bCx4z4T.png")));
+            pieceIconMap.put("white_king", ImageIO.read(new URL("https://i.imgur.com/rXDoxhx.png")));
 
-        JMenuItem setupGameMenuItem = new JMenuItem("Setup Game");
-        setupGameMenuItem.addActionListener(new ActionListener() {
+            pieceIconMap.put("black_pawn", ImageIO.read(new URL("https://i.imgur.com/13UNpni.png")));
+            pieceIconMap.put("black_knight", ImageIO.read(new URL("https://i.imgur.com/nFQG8uI.png")));
+            pieceIconMap.put("black_bishop", ImageIO.read(new URL("https://i.imgur.com/GJL1Lpw.png")));
+            pieceIconMap.put("black_rook", ImageIO.read(new URL("https://i.imgur.com/q31CI9i.png")));
+            pieceIconMap.put("black_queen", ImageIO.read(new URL("https://i.imgur.com/fO0AqnA.png")));
+            pieceIconMap.put("black_king", ImageIO.read(new URL("https://i.imgur.com/6I3mOgs.png")));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        
+        return pieceIconMap;
+    }
 
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Table.get().getGameSetup().promptUser();
-                Table.get().setupUpdate(Table.get().getGameSetup());
-                
-            }
-            
-        });
+    public void startGame() {
+        this.gameStarted = true;
 
-        optionsMenu.add(setupGameMenuItem);
+    }
 
-        return optionsMenu;
+    public void stopGame() {
+        this.gameStarted = true;
     }
 
     public void updateGameBoard(Board board) {
@@ -256,7 +286,7 @@ public class Table extends Observable {
 
         @Override
         protected Move doInBackground() throws Exception {
-            MoveStrategy minimax = new MiniMax(4);
+            MoveStrategy minimax = new MiniMax(Table.get().getGameSetup().getSearchDepth());
             Move bestMove = minimax.execute(Table.get().getGameBoard());
             return bestMove;
         }
@@ -318,15 +348,11 @@ public class Table extends Observable {
 
         private int tileId;
 
-        protected boolean drawPiece;
-
         public TilePanel(BoardPanel boardPanel, int tileId) {
             this.boardPanel = boardPanel;
             this.tileId = tileId;
-            this.drawPiece = true;
             setLayout(null);
             setPreferredSize(TILE_PANEL_DIMENSION);
-            drawTile(gameBoard);
             setOpaque(true);
 
             addMouseListener(new MouseListener() {
@@ -335,7 +361,7 @@ public class Table extends Observable {
 
                 @Override
                 public void mousePressed(MouseEvent e) {
-                    if (!gameSetup.isAIPlayer(gameBoard.currentPlayer())) {                    
+                    if (!gameSetup.isAIPlayer(gameBoard.currentPlayer()) && gameStarted) {                    
                         if (sourceTile == null) {
                             sourceTile = gameBoard.getTile(tileId);
                             movedPiece = sourceTile.getPiece();
@@ -355,7 +381,7 @@ public class Table extends Observable {
 
                 @Override
                 public void mouseReleased(MouseEvent e) {
-                    if (!gameSetup.isAIPlayer(gameBoard.currentPlayer())) {    
+                    if (!gameSetup.isAIPlayer(gameBoard.currentPlayer()) && gameStarted) {    
                         if (sourceTile != null) {
                             if (sourceTile.getTileCoordinate() != tileId) {
                                 Move move = MoveFactory.createMove(gameBoard, 
@@ -367,7 +393,6 @@ public class Table extends Observable {
                                     moveLog.addMove(move); 
                                     setBackground(DESTINATION_TILE_COLOR);
                                     lastMove = move;
-                            
                                 }
                                 clearTileState();
                             } else if (sourceTile.getTileCoordinate() != lastEnteredTile.getTileCoordinate()) {
@@ -426,28 +451,42 @@ public class Table extends Observable {
 
         public void drawTile(Board board) {
             assignTileColor(board);
-            assignPiece(board);
-            highlightLegalMoves(board);
-            highlightLastMove(board);
-            highlightCheck(board);
-            highlightCheckMate(board);
+            if (gameStarted) {
+                assignPiece(board);
+                highlightLegalMoves(board);
+                highlightLastMove(board);
+                highlightCheck(board);
+                highlightCheckMate(board);
+
+            }
+            
             validate();
             repaint();
         }
+
+        private void assignTileColor(Board board) {
+            boolean isLight = ((tileId + tileId / 8) % 2 == 0);
+            setBackground(isLight ? LIGHT_TILE_COLOR : DARK_TILE_COLOR);
+            if (movedPiece != null && movedPiece.getColor() == board.currentPlayer().getColor()) {
+                boardPanel.getTilePanel(sourceTile.getTileCoordinate()).setBackground(SOURCE_TILE_COLOR);
+            }
+        }
+
 
         private void highlightLegalMoves(Board board) {
             if (highlightLegalMoves) {
                 for (Move move : pieceLegalMoves(board)) {
                     if (move.getDestinationCoordinate() == this.tileId) {
                         try {
-                            BufferedImage legalMoveImage;
+                            Image legalMoveImage;
                             if (move.isAttackMove()) {
-                                legalMoveImage = ImageIO.read(new File("./gui/assets/move_highlighting/attack_move.png"));
+                                legalMoveImage = ImageIO.read(new File("./gui/assets/move_highlighting/attack_move.png")).getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                                //legalMoveImage = ImageIO.read(new URL("https://i.imgur.com/oE30v3z.png")).getScaledInstance(100, 100, Image.SCALE_SMOOTH);
                             } else {
-                                legalMoveImage = ImageIO.read(new File("./gui/assets/move_highlighting/basic_move.png"));
+                                legalMoveImage = ImageIO.read(new File("./gui/assets/move_highlighting/basic_move.png")).getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                                //legalMoveImage = ImageIO.read(new URL("https://i.imgur.com/XuhdJv8.png")).getScaledInstance(100, 100, Image.SCALE_SMOOTH);
                             }
-                            Image scaledLegalMoveImage = legalMoveImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-                            JLabel legalMoves = new JLabel(new ImageIcon(scaledLegalMoveImage));
+                            JLabel legalMoves = new JLabel(new ImageIcon(legalMoveImage));
                             legalMoves.setBounds(0, 0, 100, 100);
                             add(legalMoves, Integer.valueOf(1));
                         } catch (IOException e) {
@@ -455,7 +494,30 @@ public class Table extends Observable {
                         }
                     }
                 }
+                if (!board.currentPlayer().getCastlingMoves().isEmpty()) {
+                    for (Move move : board.currentPlayer().getCastlingMoves()) {
+                        if (move.getDestinationCoordinate() == this.tileId && sourceTile != null
+                                                                           && sourceTile.getPiece().getPieceType() == PieceType.KING) {
+                            try {
+                                Image legalMoveImage = ImageIO.read(new File("./gui/assets/move_highlighting/basic_move.png")).getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                                //Image legalMoveImage = ImageIO.read(new URL("https://i.imgur.com/XuhdJv8.png")).getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                                JLabel legalMoves = new JLabel(new ImageIcon(legalMoveImage));
+                                legalMoves.setBounds(0, 0, 100, 100);
+                                add(legalMoves, Integer.valueOf(1));
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }
             }
+        }
+
+        private Collection<Move> pieceLegalMoves(Board board) {
+            if (movedPiece != null && movedPiece.getColor() == board.currentPlayer().getColor()) {
+                return movedPiece.calculateLegalMoves(board);
+            }
+            return Collections.emptyList();
         }
 
         private void highlightLastMove(Board board) {
@@ -477,36 +539,20 @@ public class Table extends Observable {
             }
         }
 
-        private Collection<Move> pieceLegalMoves(Board board) {
-            if (movedPiece != null && movedPiece.getColor() == board.currentPlayer().getColor()) {
-                return movedPiece.calculateLegalMoves(board);
-            }
-            return Collections.emptyList();
-        }
-
-
-        private void assignTileColor(Board board) {
-            boolean isLight = ((tileId + tileId / 8) % 2 == 0);
-            setBackground(isLight ? LIGHT_TILE_COLOR : DARK_TILE_COLOR);
-            if (movedPiece != null && movedPiece.getColor() == board.currentPlayer().getColor()) {
-                boardPanel.getTilePanel(sourceTile.getTileCoordinate()).setBackground(SOURCE_TILE_COLOR);
-            }
-        }
 
         private void assignPiece(Board board) {
             this.removeAll();
             if (board.getTile(tileId).isOccupied()) {
                 try {
                     String pieceIconPath = board.getTile(tileId).getPiece().getColor().name().toLowerCase() + "_" + 
-                                           board.getTile(tileId).getPiece().getClass().getSimpleName().toLowerCase() + ".png";
-                    BufferedImage pieceIconImage = ImageIO.read(new File("./gui/assets/piece_icons/" + pieceIconPath));
-                    Image scaledPieceIconImage = pieceIconImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-                    JLabel pieceIcon = new JLabel(new ImageIcon(scaledPieceIconImage));
+                                            board.getTile(tileId).getPiece().getClass().getSimpleName().toLowerCase() + ".png";
+                    Image pieceIconImage = ImageIO.read(new File("./gui/assets/piece_icons/" + pieceIconPath)).getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                    /*String pieceName = board.getTile(tileId).getPiece().getColor().name().toLowerCase() + "_" +
+                                        board.getTile(tileId).getPiece().getClass().getSimpleName().toLowerCase();
+                    Image pieceIconImage = PIECE_ICON_MAP.get(pieceName).getScaledInstance(100, 100, Image.SCALE_SMOOTH);*/
+                    JLabel pieceIcon = new JLabel(new ImageIcon(pieceIconImage));
                     pieceIcon.setBounds(0, 0, 100, 100);
-                    if (drawPiece) {
-                        add(pieceIcon, Integer.valueOf(0));
-                    }
-                    
+                    add(pieceIcon, Integer.valueOf(0));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -523,18 +569,37 @@ public class Table extends Observable {
 
     public static class MoveLog {
 
-        private List<Move> moves;
+        public class MoveStruct {
+            Move move;
+            String moveString;
+
+            public MoveStruct(Move move, String moveString) {
+                this.move = move;
+                this.moveString = moveString;
+            }
+        }
+
+        private List<MoveStruct> moves;
 
         public MoveLog() {
             this.moves = new ArrayList<>();
         }
 
-        public List<Move> getMoves() {
+        public List<MoveStruct> getMoves() {
             return moves;
         }
 
         public void addMove(Move move) {
-            this.moves.add(move);
+            this.moves.add(new MoveStruct(move, move.toString() + calculateCheckAndCheckMateHash(Table.get().getGameBoard())));
+        }
+
+        private static String calculateCheckAndCheckMateHash(Board board) {
+            if (board.currentPlayer().isInCheckMate()) {
+                return "#";
+            } else if (board.currentPlayer().isInCheck()) {
+                return "+";
+            }
+            return "";
         }
 
         public int size() {
@@ -549,9 +614,6 @@ public class Table extends Observable {
             this.moves.remove(index);
         }
 
-        public boolean removeMove(Move move) {
-            return moves.remove(move);
-        }
     }
 
     public enum PlayerType {

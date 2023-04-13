@@ -1,8 +1,11 @@
 package player.ai;
 
+import java.text.DecimalFormat;
+
 import board.Board;
 import board.Move;
 import board.MoveTransition;
+import board.Move.MoveFactory;
 
 public class MiniMax implements MoveStrategy {
 
@@ -22,7 +25,7 @@ public class MiniMax implements MoveStrategy {
     public Move execute(Board board) {
         long startTIme = System.currentTimeMillis();
 
-        Move bestMove = null;
+        Move bestMove = new Move.NullMove();
         int highestSeenValue = NEGATIVE_INFINITY;
         int lowestSeenValue = POSITIVE_INFINITY;
         int currentValue;
@@ -47,6 +50,9 @@ public class MiniMax implements MoveStrategy {
         }
 
         long executionTime = System.currentTimeMillis() - startTIme;
+        double executionTimeSeconds = executionTime / 1000.0;
+        DecimalFormat df = new DecimalFormat("#.###");
+        System.out.println(board.currentPlayer().toString() + " SELECTS " + bestMove.toString() + " [Execution Time = " + (Double.valueOf(df.format(executionTimeSeconds))) + "s]\n");
         return bestMove;
     }
 
@@ -101,5 +107,8 @@ public class MiniMax implements MoveStrategy {
     public String toString() {
         return "Minimax";
     }
+
+
+
     
 }

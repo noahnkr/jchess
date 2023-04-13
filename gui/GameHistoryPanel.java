@@ -15,11 +15,13 @@ import java.util.List;
 import board.Board;
 import board.Move;
 import gui.Table.MoveLog;
+import gui.Table.MoveLog.MoveStruct;
 
 public class GameHistoryPanel extends JPanel {
 
     private DataModel model;
     private JScrollPane scrollPane;
+
     private static final Dimension HISTORY_PANEL_DIMENSION = new Dimension(100, 40);
 
     public GameHistoryPanel() {
@@ -37,24 +39,22 @@ public class GameHistoryPanel extends JPanel {
     public void redo(Board board, MoveLog moveHistory) {
         int currentRow = 0;
         this.model.clear();
-        for (Move move : moveHistory.getMoves()) {
-            String moveText = move.toString();
-            if (move.getMovedPiece().getColor().isWhite()) {
-                this.model.setValueAt(moveText, currentRow, 0);
-            } else if (move.getMovedPiece().getColor().isBlack()) {
-                this.model.setValueAt(moveText, currentRow, 1);
+        for (MoveStruct moveStruct : moveHistory.getMoves()) {
+            if (moveStruct.move.getMovedPiece().getColor().isWhite()) {
+                this.model.setValueAt(moveStruct.moveString, currentRow, 0);
+            } else if (moveStruct.move.getMovedPiece().getColor().isBlack()) {
+                this.model.setValueAt(moveStruct.moveString, currentRow, 1);
                 currentRow++;
             }
         }
 
         if (moveHistory.getMoves().size() > 0) {
-            Move lastMove = moveHistory.getMoves().get(moveHistory.size() - 1);
-            String moveText = lastMove.toString();
+            MoveStruct lastMove = moveHistory.getMoves().get(moveHistory.size() - 1);
 
-            if (lastMove.getMovedPiece().getColor().isWhite()) {
-                this.model.setValueAt(moveText + calculateCheckAndCheckMateHash(board), currentRow, 0);
-            } else if (lastMove.getMovedPiece().getColor().isBlack()) {
-                this.model.setValueAt(moveText + calculateCheckAndCheckMateHash(board), currentRow - 1, 1);
+            if (lastMove.move.getMovedPiece().getColor().isWhite()) {
+                this.model.setValueAt(lastMove.moveString, currentRow, 0);
+            } else if (lastMove.move.getMovedPiece().getColor().isBlack()) {
+                this.model.setValueAt(lastMove.moveString, currentRow - 1, 1);
             }
         }
 
@@ -62,21 +62,14 @@ public class GameHistoryPanel extends JPanel {
         vertical.setValue(vertical.getMaximum());
     }
 
-    private static String calculateCheckAndCheckMateHash(Board board) {
-        if (board.currentPlayer().isInCheckMate()) {
-            return "#";
-        } else if (board.currentPlayer().isInCheck()) {
-            return "+";
-        }
-        return "";
-    }
+    
 
     private static class Row {
 
         private String whiteMove;
         private String blackMove;
 
-        Row() {}
+        private Row() {}
 
         public String getWhiteMove() {
             return this.whiteMove;
@@ -101,7 +94,7 @@ public class GameHistoryPanel extends JPanel {
         private List<Row> values;
         private static final String[] NAMES = { "White", "Black" };
 
-        DataModel() {
+        public DataModel() {
             this.values = new ArrayList<>();
         }
 

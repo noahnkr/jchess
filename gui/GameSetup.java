@@ -56,22 +56,24 @@ public class GameSetup extends JDialog {
         myPanel.add(blackComputerButton);
 
         myPanel.add(new JLabel("Search"));
-        this.searchDepthSpinner = addLabeledSpinner(myPanel, "Search Depth", new SpinnerNumberModel(6, 0, Integer.MAX_VALUE, 1));
+        this.searchDepthSpinner = addLabeledSpinner(myPanel, "Search Depth", new SpinnerNumberModel(4, 0, Integer.MAX_VALUE, 1));
 
         JButton cancelButton = new JButton("Cancel");
         JButton okButton = new JButton("OK");
 
         okButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
+                System.out.println("Starting Game.");
                 whitePlayerType = whiteComputerButton.isSelected() ? PlayerType.COMPUTER : PlayerType.HUMAN;
                 blackPlayerType = blackComputerButton.isSelected() ? PlayerType.COMPUTER : PlayerType.HUMAN;
+                Table.get().startGame();
                 GameSetup.this.setVisible(false);
             }
         });
 
         cancelButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                System.out.println("Cancel");
+                System.out.println("Cancel.");
                 GameSetup.this.setVisible(false);
             }
         });
@@ -113,7 +115,7 @@ public class GameSetup extends JDialog {
         return spinner;
     }
 
-    private int getSearchDepth() {
+    public int getSearchDepth() {
         return (Integer)this.searchDepthSpinner.getValue();
     }
 }
