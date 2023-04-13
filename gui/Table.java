@@ -24,10 +24,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
@@ -69,6 +67,7 @@ public class Table extends Observable {
     private Piece movedPiece;
 
     private boolean highlightLegalMoves;
+    private boolean gameStarted;
 
     private static final Dimension OUTER_FRAME_DIMENSION = new Dimension(1000, 800);
     private static final Dimension BOARD_PANEL_DIMENSION = new Dimension(400, 350);
@@ -91,6 +90,7 @@ public class Table extends Observable {
         this.gameHistoryPanel = new GameHistoryPanel();
         this.takenPiecesPanel = new TakenPiecesPanel();
         this.highlightLegalMoves = true;
+        this.gameStarted = false;
         this.gameFrame.setSize(OUTER_FRAME_DIMENSION);
         this.gameFrame.setResizable(false);
         this.boardPanel = new BoardPanel();
@@ -122,12 +122,23 @@ public class Table extends Observable {
         JMenuBar tableMenuBar = new JMenuBar();
         tableMenuBar.add(createFileMenu());
         tableMenuBar.add(createPreferencesMenu());
-        tableMenuBar.add(createOptionsMenu());
         return tableMenuBar;
     }
 
     private JMenu createFileMenu() {
         JMenu fileMenu = new JMenu("File");
+
+        JMenuItem newGameMenuItem = new JMenuItem("New Game");
+        newGameMenuItem.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Table.get().getGameSetup().promptUser();
+                Table.get().setupUpdate(Table.get().getGameSetup());
+                Table.get().getBoardPanel().drawBoard(Table.get().getGameBoard());
+            }
+            
+        });
 
         JMenuItem openPGNMenuItem = new JMenuItem("Load PGN File");
         openPGNMenuItem.addActionListener(new ActionListener() {
@@ -148,6 +159,7 @@ public class Table extends Observable {
             
         });
 
+        fileMenu.add(newGameMenuItem);
         fileMenu.add(openPGNMenuItem);
         fileMenu.add(exitMenuItem);
         return fileMenu;
@@ -168,26 +180,6 @@ public class Table extends Observable {
 
         preferencesMenu.add(highlightLegalMovesMenuItem);
         return preferencesMenu;
-    }
-
-    private JMenu createOptionsMenu() {
-        JMenu optionsMenu = new JMenu("Options");
-
-        JMenuItem setupGameMenuItem = new JMenuItem("Setup Game");
-        setupGameMenuItem.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Table.get().getGameSetup().promptUser();
-                Table.get().setupUpdate(Table.get().getGameSetup());
-                
-            }
-            
-        });
-
-        optionsMenu.add(setupGameMenuItem);
-
-        return optionsMenu;
     }
 
     private static Map<String, Image> setupPieceIconMap() {
@@ -211,6 +203,15 @@ public class Table extends Observable {
         }
         
         return pieceIconMap;
+    }
+
+    public void startGame() {
+        this.gameStarted = true;
+
+    }
+
+    public void stopGame() {
+        this.gameStarted = true;
     }
 
     public void updateGameBoard(Board board) {
@@ -347,15 +348,11 @@ public class Table extends Observable {
 
         private int tileId;
 
-        protected boolean drawPiece;
-
         public TilePanel(BoardPanel boardPanel, int tileId) {
             this.boardPanel = boardPanel;
             this.tileId = tileId;
-            this.drawPiece = true;
             setLayout(null);
             setPreferredSize(TILE_PANEL_DIMENSION);
-            drawTile(gameBoard);
             setOpaque(true);
 
             addMouseListener(new MouseListener() {
@@ -364,7 +361,7 @@ public class Table extends Observable {
 
                 @Override
                 public void mousePressed(MouseEvent e) {
-                    if (!gameSetup.isAIPlayer(gameBoard.currentPlayer())) {                    
+                    if (!gameSetup.isAIPlayer(gameBoard.currentPlayer()) && gameStarted) {                    
                         if (sourceTile == null) {
                             sourceTile = gameBoard.getTile(tileId);
                             movedPiece = sourceTile.getPiece();
@@ -384,7 +381,7 @@ public class Table extends Observable {
 
                 @Override
                 public void mouseReleased(MouseEvent e) {
-                    if (!gameSetup.isAIPlayer(gameBoard.currentPlayer())) {    
+                    if (!gameSetup.isAIPlayer(gameBoard.currentPlayer()) && gameStarted) {    
                         if (sourceTile != null) {
                             if (sourceTile.getTileCoordinate() != tileId) {
                                 Move move = MoveFactory.createMove(gameBoard, 
@@ -454,14 +451,27 @@ public class Table extends Observable {
 
         public void drawTile(Board board) {
             assignTileColor(board);
-            assignPiece(board);
-            highlightLegalMoves(board);
-            highlightLastMove(board);
-            highlightCheck(board);
-            highlightCheckMate(board);
+            if (gameStarted) {
+                assignPiece(board);
+                highlightLegalMoves(board);
+                highlightLastMove(board);
+                highlightCheck(board);
+                highlightCheckMate(board);
+
+            }
+            
             validate();
             repaint();
         }
+
+        private void assignTileColor(Board board) {
+            boolean isLight = ((tileId + tileId / 8) % 2 == 0);
+            setBackground(isLight ? LIGHT_TILE_COLOR : DARK_TILE_COLOR);
+            if (movedPiece != null && movedPiece.getColor() == board.currentPlayer().getColor()) {
+                boardPanel.getTilePanel(sourceTile.getTileCoordinate()).setBackground(SOURCE_TILE_COLOR);
+            }
+        }
+
 
         private void highlightLegalMoves(Board board) {
             if (highlightLegalMoves) {
@@ -529,13 +539,6 @@ public class Table extends Observable {
             }
         }
 
-        private void assignTileColor(Board board) {
-            boolean isLight = ((tileId + tileId / 8) % 2 == 0);
-            setBackground(isLight ? LIGHT_TILE_COLOR : DARK_TILE_COLOR);
-            if (movedPiece != null && movedPiece.getColor() == board.currentPlayer().getColor()) {
-                boardPanel.getTilePanel(sourceTile.getTileCoordinate()).setBackground(SOURCE_TILE_COLOR);
-            }
-        }
 
         private void assignPiece(Board board) {
             this.removeAll();
@@ -549,9 +552,7 @@ public class Table extends Observable {
                     Image pieceIconImage = PIECE_ICON_MAP.get(pieceName).getScaledInstance(100, 100, Image.SCALE_SMOOTH);*/
                     JLabel pieceIcon = new JLabel(new ImageIcon(pieceIconImage));
                     pieceIcon.setBounds(0, 0, 100, 100);
-                    if (drawPiece) {
-                        add(pieceIcon, Integer.valueOf(0));
-                    }
+                    add(pieceIcon, Integer.valueOf(0));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

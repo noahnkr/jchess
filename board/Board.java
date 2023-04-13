@@ -3,6 +3,7 @@ package board;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,21 +43,16 @@ public class Board {
     private Pawn enPassantPawn;
 
     public Board(BoardBuilder builder) {
-        this.gameBoard = initializeBoard(builder);
+        this.gameBoard = initializeTiles(builder);
         this.whitePieces = getActivePieces(gameBoard, Color.WHITE);
         this.blackPieces = getActivePieces(gameBoard, Color.BLACK);
         this.enPassantPawn = builder.enPassantPawn;
-
-        // Empty Board
-        if (!(whitePieces.isEmpty() && blackPieces.isEmpty())) {
-            Collection<Move> whiteLegalMoves = getLegalMoves(whitePieces);
-            Collection<Move> blackLegalMoves = getLegalMoves(blackPieces);
-            this.whitePlayer = new WhitePlayer(this, whiteLegalMoves, blackLegalMoves);
-            this.blackPlayer = new BlackPlayer(this, blackLegalMoves, whiteLegalMoves);
-            this.currentPlayer = builder.nextMoveMaker.choosePlayer(this.whitePlayer, this.blackPlayer);
-        }
+        Collection<Move> whiteLegalMoves = getLegalMoves(whitePieces);
+        Collection<Move> blackLegalMoves = getLegalMoves(blackPieces);
+        this.whitePlayer = new WhitePlayer(this, whiteLegalMoves, blackLegalMoves);
+        this.blackPlayer = new BlackPlayer(this, blackLegalMoves, whiteLegalMoves);
+        this.currentPlayer = builder.nextMoveMaker.choosePlayer(this.whitePlayer, this.blackPlayer);
     }
-
 
     @Override
     public String toString() {
@@ -147,7 +143,7 @@ public class Board {
         return coordinate >= 0 && coordinate < NUM_TILES;
     }
 
-    public static List<Tile> initializeBoard(BoardBuilder builder) {
+    public static List<Tile> initializeTiles(BoardBuilder builder) {
         List<Tile> emptyBoard = new ArrayList<>();
         for (int i = 0; i < NUM_TILES; i++) {
             emptyBoard.add(Tile.createTile(i, builder.pieceMap.get(i)));
@@ -155,9 +151,6 @@ public class Board {
         return emptyBoard;
     }
 
-    public static Board createEmptyBoard() {
-        return new BoardBuilder().build();
-    }
 
     public static Board createStandardBoard() {
         BoardBuilder builder = new BoardBuilder();
