@@ -80,8 +80,8 @@ public abstract class Piece {
 
     public enum PieceType {
         PAWN("P", 100),
-        KNIGHT("N", 300),
-        BISHOP("B", 300),
+        KNIGHT("N", 320),
+        BISHOP("B", 330),
         ROOK("R", 500),
         QUEEN("Q", 900),
         KING("K", 10000);
