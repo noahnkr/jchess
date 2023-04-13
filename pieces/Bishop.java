@@ -60,6 +60,11 @@ public class Bishop extends Piece {
         return legalMoves;
     }
 
+    @Override
+    public int pieceSquareBonus() {
+        return this.pieceColor.bishopBonus(piecePosition);
+    }
+
     /* Exceptions to bishop move offset when its position is on the first or eighth column. */
 
     private static boolean isFirstColumnExclusion(int position, int offset) {

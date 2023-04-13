@@ -5,7 +5,6 @@ import java.text.DecimalFormat;
 import board.Board;
 import board.Move;
 import board.MoveTransition;
-import board.Move.MoveFactory;
 
 public class MiniMax implements MoveStrategy {
 

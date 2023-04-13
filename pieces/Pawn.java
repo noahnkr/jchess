@@ -106,6 +106,11 @@ public class Pawn extends Piece {
     }
 
     @Override
+    public int pieceSquareBonus() {
+        return this.pieceColor.pawnBonus(piecePosition);
+    }
+
+    @Override
     public Pawn movePiece(Move move) {
         return new Pawn(move.getDestinationCoordinate(), move.getMovedPiece().getColor());
     }

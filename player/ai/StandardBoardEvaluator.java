@@ -1,11 +1,12 @@
 package player.ai;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.List;
 
 import board.Board;
+import board.Move;
+import board.Move.AttackMove;
 import pieces.Piece;
 import pieces.Piece.PieceType;
 import player.Player;
@@ -13,40 +14,61 @@ import player.Player;
 public class StandardBoardEvaluator implements BoardEvaluator {
 
     private static final int CHECK_BONUS = 50;
-    private static final int CHECK_MATE_BONUS = 1000;
+    private static final int CHECK_MATE_BONUS = 10000;
     private static final int DEPTH_BONUS = 100;
-    private static final int CASTLE_BONUS = 60;
-    private static final int DOUBLE_BISHOP_BONUS = 50;
+    private static final int CASTLE_BONUS = 25;
+    private static final int DOUBLE_BISHOP_BONUS = 25;
 
- 
+    private static final int MOBILITY_WEIGHT = 5;
+    private static final int ATTACKS_WEIGHT = 1;
 
     @Override
     public int evaluate(Board board, int depth) {
         return scorePlayer(board, board.whitePlayer(), depth) -
-               scorePlayer(board, board.blackPlayer(), depth);
+                scorePlayer(board, board.blackPlayer(), depth);
     }
 
     public int scorePlayer(Board board, Player player, int depth) {
-        return pieceValue(player) + 
-               mobility(player) + 
-               check(player) +
-               checkmate(player, depth) +
-               doubleBishopBonus(player) +
-               castled(player);
+         return pieceEvaluation(player) +
+                mobility(player) +
+                attacks(player) +
+                check(player) +
+                checkmate(player, depth) +
+                castled(player) + 
+                pawnStructure(player);
     }
 
-    private static int pieceValue(Player player) {
+    private static int pieceEvaluation(Player player) {
         int pieceValueScore = 0;
+        int bishopCount = 0;
         for (Piece piece : player.getActivePieces()) {
-            pieceValueScore += piece.getPieceValue() +
-                               pieceSquareBonus(piece, false);
+            pieceValueScore += piece.getPieceValue() + piece.pieceSquareBonus();
+
+            if (piece.getPieceType() == PieceType.BISHOP) {
+                bishopCount++;
+            }
         }
 
-        return pieceValueScore;
+        return pieceValueScore + (bishopCount == 2 ? DOUBLE_BISHOP_BONUS : 0);
     }
 
     private static int mobility(Player player) {
-        return player.getLegalMoves().size();
+        return ((int) ((player.getLegalMoves().size() / 10.0f) /
+                player.getOpponent().getLegalMoves().size())) *
+                MOBILITY_WEIGHT;
+    }
+
+    private static int attacks(Player player) {
+        int attackScore = 0;
+        for (Move move : player.getLegalMoves()) {
+            if (move.isAttackMove()) {
+                if (move.getMovedPiece().getPieceValue() <= (((AttackMove) move).getAttackedPiece().getPieceValue())) {
+                    attackScore++;
+                }
+            }
+        }
+
+        return attackScore * ATTACKS_WEIGHT;
     }
 
     private static int check(Player player) {
@@ -54,126 +76,75 @@ public class StandardBoardEvaluator implements BoardEvaluator {
     }
 
     private static int checkmate(Player player, int depth) {
-        return player.getOpponent().isInCheckMate() ? CHECK_MATE_BONUS + depthBonus(depth) : 0;
+        return player.getOpponent().isInCheckMate() ? CHECK_MATE_BONUS * depthBonus(depth) : 0;
     }
 
     private static int depthBonus(int depth) {
         return depth == 0 ? 1 : DEPTH_BONUS * depth;
     }
 
-    private static int doubleBishopBonus(Player player) {
-        int bishopCount = 0;
-        for (Piece piece : player.getActivePieces()) {
-            if (piece.getPieceType() == PieceType.BISHOP) {
-                bishopCount++;
-            }
-        }
-        return bishopCount == 2 ? DOUBLE_BISHOP_BONUS : 0;
-    }
-
     private static int castled(Player player) {
         return player.isCastled() ? CASTLE_BONUS : 0;
     }
 
-    private static int pieceSquareBonus(Piece piece, boolean endgame) {
-        List<Integer> pieceSquare;
-        switch (piece.getPieceType()) {
-            case PAWN:
-                pieceSquare = Arrays.asList(
-                    0, 0, 0, 0, 0, 0, 0, 0,
-                    50, 50, 50, 50, 50, 50, 50, 50,
-                    10, 10, 20, 30, 30, 20, 10, 10,
-                    5, 5, 10, 25, 25, 10, 5, 5,
-                    0, 0, 0, 20, 20, 0, 0, 0,
-                    5, -5, -10, 0, 0, -10, -5, 5,
-                    5, 10, 10, -20, -20, 10, 10, 5,
-                    0, 0, 0, 0, 0, 0, 0, 0
-                );
-                break;
-            case KNIGHT:
-                pieceSquare = Arrays.asList(
-                    -50, -40, -30, -30, -30, -30, -40, -50,
-                    -40, -20, 0, 0, 0, 0, -20, -40,
-                    -30, 0, 10, 15, 15, 10, 0, -30,
-                    -30, 5, 15, 20, 20, 15, 5, -30,
-                    -30, 0, 15, 20, 20, 15, 0, -30,
-                    -30, 5, 10, 15, 15, 10, 5, -30,
-                    -40, -20, 0, 5, 5, 0, -20, -40,
-                    -50, -40, -30, -30, -30, -30, -40, -50
-                );
-                break;
-            case BISHOP:
-                pieceSquare = Arrays.asList(
-                    -20, -10, -10, -10, -10, -10, -10, -20,
-                    -10, 0, 0, 0, 0, 0, 0, -10,
-                    -10, 0, 5, 10, 10, 5, 0, -10,
-                    -10, 5, 5, 10, 10, 5, 5, -10,
-                    -10, 0, 10, 10, 10, 10, 0, -10,
-                    -10, 10, 10, 10, 10, 10, 10, -10,
-                    -10, 5, 0, 0, 0, 0, 5, -10,
-                    -20, -10, -10, -10, -10, -10, -10, -20
-                );
-                break;
-            case ROOK: 
-                pieceSquare = Arrays.asList(
-                    0, 0, 0, 0, 0, 0, 0, 0,
-                    5, 10, 10, 10, 10, 10, 10, 5,
-                    -5, 0, 0, 0, 0, 0, 0, -5,
-                    -5, 0, 0, 0, 0, 0, 0, -5,
-                    -5, 0, 0, 0, 0, 0, 0, -5,
-                    -5, 0, 0, 0, 0, 0, 0, -5,
-                    -5, 0, 0, 0, 0, 0, 0, -5,
-                    0, 0, 0, 5, 5, 0, 0, 0
-                );
-                break;
-            case QUEEN: 
-                pieceSquare = Arrays.asList(
-                    -20, -10, -10, -5, -5, -10, -10, -20,
-                    -10, 0, 0, 0, 0, 0, 0, -10,
-                    -10, 0, 5, 5, 5, 5, 0, -10,
-                    -5, 0, 5, 5, 5, 5, 0, -5,
-                    0, 0, 5, 5, 5, 5, 0, -5,
-                    -10, 5, 5, 5, 5, 5, 0, -10,
-                    -10, 0, 5, 0, 0, 0, 0, -10,
-                    -20, -10, -10, -5, -5, -10, -10, -20
-                );
-                break;
-            case KING: 
-                if (endgame) {
-                    pieceSquare = Arrays.asList(
-                        -50, -40, -30, -20, -20, -30, -40, -50,
-                        -30, -20, -10, 0, 0, -10, -20, -30,
-                        -30, -10, 20, 30, 30, 20, -10, -30,
-                        -30, -10, 30, 40, 40, 30, -10, -30,
-                        -30, -10, 30, 40, 40, 30, -10, -30,
-                        -30, -10, 20, 30, 30, 20, -10, -30,
-                        -30, -30, 0, 0, 0, 0, -30, -30,
-                        -50, -30, -30, -30, -30, -30, -30, -50
-                    );
-                } else {
-                    pieceSquare = Arrays.asList(
-                        -30, -40, -40, -50, -50, -40, -40, -30,
-                        -30, -40, -40, -50, -50, -40, -40, -30,
-                        -30, -40, -40, -50, -50, -40, -40, -30,
-                        -30, -40, -40, -50, -50, -40, -40, -30,
-                        -20, -30, -30, -40, -40, -30, -30, -20,
-                        -10, -20, -20, -20, -20, -20, -20, -10,
-                        20, 20, 0, 0, 0, 0, 20, 20,
-                        20, 30, 10, 0, 0, 10, 30, 20
-                    );
-                }
-                break;
-            default: 
-                pieceSquare = new ArrayList<>(Board.NUM_TILES);
-                break;
-        }
-
-        if (piece.getColor().isBlack()) {
-            Collections.reverse(pieceSquare);
-        }
-
-        return pieceSquare.get(piece.getPosition());
+    private static int pawnStructure(Player player) {
+        return PawnStructureAnalyzer.pawnStructureScore(player);
     }
 
+    private final class PawnStructureAnalyzer {
 
+        private static final int ISOLATED_PAWN_PENALTY = -10;
+        private static final int DOUBLED_PAWN_PENALTY = -10;
+
+        private PawnStructureAnalyzer() {}
+
+        public static int pawnStructureScore(Player player) {
+            int[] pawnsOnColumnTable = createPawnColumnTable(calculatePlayerPawns(player));
+            return calculatePawnColumnStack(pawnsOnColumnTable) + calculateIsolatedPawnPenalty(pawnsOnColumnTable);
+        }
+
+        private static Collection<Piece> calculatePlayerPawns(Player player) {
+            List<Piece> playerPawns = new ArrayList<Piece>();
+            for (Piece piece : player.getActivePieces()) {
+                if (piece.getPieceType() == PieceType.PAWN) {
+                    playerPawns.add(piece);
+                }
+            }
+            return playerPawns;
+        }
+
+        private static int calculatePawnColumnStack(int[] pawnsOnColumnTable) {
+            int pawnStackPenalty = 0;
+            for (int pawnStack : pawnsOnColumnTable) {
+                if (pawnStack > 1) {
+                    pawnStackPenalty += pawnStack;
+                }
+            }
+            return pawnStackPenalty * DOUBLED_PAWN_PENALTY;
+        }
+
+        private static int calculateIsolatedPawnPenalty(int[] pawnsOnColumnTable) {
+            int numIsolatedPawns = 0;
+            if (pawnsOnColumnTable[0] > 0 && pawnsOnColumnTable[1] == 0) {
+                numIsolatedPawns += pawnsOnColumnTable[0];
+            }
+            if (pawnsOnColumnTable[7] > 0 && pawnsOnColumnTable[6] == 0) {
+                numIsolatedPawns += pawnsOnColumnTable[7];
+            }
+            for (int i = 1; i < pawnsOnColumnTable.length - 1; i++) {
+                if ((pawnsOnColumnTable[i - 1] == 0 && pawnsOnColumnTable[i + 1] == 0)) {
+                    numIsolatedPawns += pawnsOnColumnTable[i];
+                }
+            }
+            return numIsolatedPawns * ISOLATED_PAWN_PENALTY;
+        }
+
+        private static int[] createPawnColumnTable(Collection<Piece> playerPawns) {
+            int[] table = new int[8];
+            for (Piece playerPawn : playerPawns) {
+                table[playerPawn.getPosition() % 8]++;
+            }
+            return table;
+        }
+    }
 }
