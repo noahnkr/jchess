@@ -69,6 +69,10 @@ public abstract class Tile {
         }
     }
 
+    public static int getActualTileId(int tileId) {
+        return 0;
+    }
+
     
 
 }

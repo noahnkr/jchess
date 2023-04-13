@@ -66,6 +66,7 @@ public class Table extends Observable {
     private Tile destinationTile;
     private Piece movedPiece;
 
+    private BoardDirection boardDirection;
     private boolean highlightLegalMoves;
     private boolean gameStarted;
 
@@ -89,6 +90,7 @@ public class Table extends Observable {
         this.gameFrame.setJMenuBar(createTableMenuBar());
         this.gameHistoryPanel = new GameHistoryPanel();
         this.takenPiecesPanel = new TakenPiecesPanel();
+        this.boardDirection = BoardDirection.NORMAL;
         this.highlightLegalMoves = true;
         this.gameStarted = false;
         this.gameFrame.setSize(OUTER_FRAME_DIMENSION);
@@ -111,7 +113,7 @@ public class Table extends Observable {
         Table.get().getMoveLog().clear();
         Table.get().getGameHistoryPanel().redo(this.gameBoard, Table.get().getMoveLog());
         Table.get().getTakenPiecesPanel().redo(Table.get().getMoveLog());
-        Table.get().getBoardPanel().drawBoard(Table.get().getGameBoard());
+        Table.get().getBoardPanel().drawBoard(Table.get().getGameBoard(), false);
     }
 
     private Board getGameBoard() {
@@ -135,7 +137,7 @@ public class Table extends Observable {
             public void actionPerformed(ActionEvent e) {
                 Table.get().getGameSetup().promptUser();
                 Table.get().setupUpdate(Table.get().getGameSetup());
-                Table.get().getBoardPanel().drawBoard(Table.get().getGameBoard());
+                Table.get().getBoardPanel().drawBoard(Table.get().getGameBoard(), false);
             }
             
         });
@@ -168,6 +170,18 @@ public class Table extends Observable {
     private JMenu createPreferencesMenu() {
         JMenu preferencesMenu = new JMenu("Preferences");
 
+        JMenuItem flipBoardMenuItem = new JMenuItem("Flip Board");
+        flipBoardMenuItem.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.out.println("Flipping Board");
+                boardDirection = boardDirection.opposite();
+                boardPanel.drawBoard(gameBoard, true);
+            }
+
+        });
+
         JCheckBoxMenuItem highlightLegalMovesMenuItem = new JCheckBoxMenuItem("Highlight Legal Moves", true);
         highlightLegalMovesMenuItem.addActionListener(new ActionListener() {
 
@@ -178,6 +192,7 @@ public class Table extends Observable {
             
         });
 
+        preferencesMenu.add(flipBoardMenuItem);
         preferencesMenu.add(highlightLegalMovesMenuItem);
         return preferencesMenu;
     }
@@ -207,7 +222,6 @@ public class Table extends Observable {
 
     public void startGame() {
         this.gameStarted = true;
-
     }
 
     public void stopGame() {
@@ -220,6 +234,10 @@ public class Table extends Observable {
 
     public void updateComputerMove(Move move) {
         this.computerMove = move;
+    }
+
+    private void setDirection(BoardDirection direction) {
+        this.boardDirection = direction;
     }
 
     private void setLastMove(Move move) {
@@ -301,7 +319,7 @@ public class Table extends Observable {
                 Table.get().getMoveLog().addMove(bestMove);
                 Table.get().getGameHistoryPanel().redo(Table.get().getGameBoard(), Table.get().getMoveLog());
                 Table.get().getTakenPiecesPanel().redo(Table.get().getMoveLog());
-                Table.get().getBoardPanel().drawBoard(Table.get().getGameBoard());
+                Table.get().getBoardPanel().drawBoard(Table.get().getGameBoard(), true);
                 Table.get().moveMadeUpdate(PlayerType.COMPUTER);
 
             } catch (InterruptedException | ExecutionException e) {
@@ -326,9 +344,10 @@ public class Table extends Observable {
             validate();
         }
 
-        public void drawBoard(Board board) {
+        public void drawBoard(Board board, boolean redraw) {
             removeAll();
-            for (TilePanel tilePanel : boardTiles) {
+            List<TilePanel> tempTiles = redraw ? boardTiles : boardDirection.traverse(boardTiles);
+            for (TilePanel tilePanel : tempTiles) {
                 tilePanel.drawTile(board);
                 add(tilePanel);
             }
@@ -336,9 +355,45 @@ public class Table extends Observable {
             repaint();
         }
 
+
+
         public TilePanel getTilePanel(int tileId) {
-            return boardTiles.get(tileId);
+            return boardTiles.get(boardTiles.get(tileId).getActualTileId(tileId));
         }
+
+    }
+
+    private enum BoardDirection {
+        NORMAL {
+
+            @Override
+            public BoardDirection opposite() {
+                return FLIPPED;
+            }
+
+            @Override
+            public List<TilePanel> traverse(List<TilePanel> boardTiles) {
+                return boardTiles;
+            }
+
+        },
+        FLIPPED {
+
+            @Override
+            public BoardDirection opposite() {
+                return NORMAL;
+            }
+
+            @Override
+            public List<TilePanel> traverse(List<TilePanel> boardTiles) {
+                Collections.reverse(boardTiles);
+                return boardTiles;
+            }
+
+        };
+
+        public abstract BoardDirection opposite();
+        public abstract List<TilePanel> traverse(List<TilePanel> boardTiles);
 
     }
     
@@ -363,18 +418,18 @@ public class Table extends Observable {
                 public void mousePressed(MouseEvent e) {
                     if (!gameSetup.isAIPlayer(gameBoard.currentPlayer()) && gameStarted) {                    
                         if (sourceTile == null) {
-                            sourceTile = gameBoard.getTile(tileId);
+                            sourceTile = gameBoard.getTile(getActualTileId(tileId));
                             movedPiece = sourceTile.getPiece();
                             if (movedPiece == null) {
                                 clearTileState();
                             } else {
                                 setBackground(SOURCE_TILE_COLOR);
-                                boardPanel.drawBoard(gameBoard);
+                                boardPanel.drawBoard(gameBoard, true);
                             } 
-                        } else if (sourceTile.getTileCoordinate() == tileId) {
+                        } else if (sourceTile.getTileCoordinate() == getActualTileId(tileId)) {
                             clearTileState();
                         } else {
-                            destinationTile = gameBoard.getTile(tileId);
+                            destinationTile = gameBoard.getTile(getActualTileId(tileId));
                         }
                     }
                 }
@@ -383,7 +438,7 @@ public class Table extends Observable {
                 public void mouseReleased(MouseEvent e) {
                     if (!gameSetup.isAIPlayer(gameBoard.currentPlayer()) && gameStarted) {    
                         if (sourceTile != null) {
-                            if (sourceTile.getTileCoordinate() != tileId) {
+                            if (sourceTile.getTileCoordinate() != getActualTileId(tileId)) {
                                 Move move = MoveFactory.createMove(gameBoard, 
                                                             sourceTile.getTileCoordinate(), 
                                                             destinationTile.getTileCoordinate());
@@ -421,7 +476,7 @@ public class Table extends Observable {
                                     Table.get().moveMadeUpdate(PlayerType.HUMAN);
                                 }
 
-                                boardPanel.drawBoard(gameBoard);
+                                boardPanel.drawBoard(gameBoard, true);
                             }
                         });
                     }
@@ -429,7 +484,7 @@ public class Table extends Observable {
 
                 @Override
                 public void mouseEntered(MouseEvent e) {
-                    lastEnteredTile = gameBoard.getTile(tileId);
+                    lastEnteredTile = gameBoard.getTile(getActualTileId(tileId));
                 }
 
                 @Override
@@ -464,6 +519,10 @@ public class Table extends Observable {
             repaint();
         }
 
+        public int getActualTileId(int tileId) {
+            return boardDirection == BoardDirection.NORMAL ? tileId : Math.abs(tileId - (Board.NUM_TILES - 1));
+        }
+
         private void assignTileColor(Board board) {
             boolean isLight = ((tileId + tileId / 8) % 2 == 0);
             setBackground(isLight ? LIGHT_TILE_COLOR : DARK_TILE_COLOR);
@@ -476,7 +535,7 @@ public class Table extends Observable {
         private void highlightLegalMoves(Board board) {
             if (highlightLegalMoves) {
                 for (Move move : pieceLegalMoves(board)) {
-                    if (move.getDestinationCoordinate() == this.tileId) {
+                    if (move.getDestinationCoordinate() == this.getActualTileId(tileId)) {
                         try {
                             Image legalMoveImage;
                             if (move.isAttackMove()) {
@@ -496,7 +555,7 @@ public class Table extends Observable {
                 }
                 if (!board.currentPlayer().getCastlingMoves().isEmpty()) {
                     for (Move move : board.currentPlayer().getCastlingMoves()) {
-                        if (move.getDestinationCoordinate() == this.tileId && sourceTile != null
+                        if (move.getDestinationCoordinate() == this.getActualTileId(tileId) && sourceTile != null
                                                                            && sourceTile.getPiece().getPieceType() == PieceType.KING) {
                             try {
                                 Image legalMoveImage = ImageIO.read(new File("./gui/assets/move_highlighting/basic_move.png")).getScaledInstance(100, 100, Image.SCALE_SMOOTH);
@@ -542,10 +601,10 @@ public class Table extends Observable {
 
         private void assignPiece(Board board) {
             this.removeAll();
-            if (board.getTile(tileId).isOccupied()) {
+            if (board.getTile(getActualTileId(tileId)).isOccupied()) {
                 try {
-                    String pieceIconPath = board.getTile(tileId).getPiece().getColor().name().toLowerCase() + "_" + 
-                                            board.getTile(tileId).getPiece().getClass().getSimpleName().toLowerCase() + ".png";
+                    String pieceIconPath = board.getTile(getActualTileId(tileId)).getPiece().getColor().name().toLowerCase() + "_" + 
+                                            board.getTile(getActualTileId(tileId)).getPiece().getClass().getSimpleName().toLowerCase() + ".png";
                     Image pieceIconImage = ImageIO.read(new File("./gui/assets/piece_icons/" + pieceIconPath)).getScaledInstance(100, 100, Image.SCALE_SMOOTH);
                     /*String pieceName = board.getTile(tileId).getPiece().getColor().name().toLowerCase() + "_" +
                                         board.getTile(tileId).getPiece().getClass().getSimpleName().toLowerCase();
