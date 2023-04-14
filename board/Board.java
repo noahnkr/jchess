@@ -222,6 +222,10 @@ public class Board {
         }
     }
 
+    public static boolean isThreatenedBoardImmediate(Board board) {
+        return board.whitePlayer().isInCheck() || board.blackPlayer().isInCheck();
+    }
+
     private static boolean[] initColumn(int columnNumber) {
         boolean[] column = new boolean[NUM_TILES];
         do {
