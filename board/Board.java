@@ -3,7 +3,6 @@ package board;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +10,7 @@ import java.util.Map;
 import player.BlackPlayer;
 import player.Player;
 import player.WhitePlayer;
+import player.ai.Zobrist;
 import pieces.*;
 
 public class Board {
@@ -32,14 +32,11 @@ public class Board {
     public static final boolean[] EIGHTH_ROW = initRow(56);
 
     private List<Tile> gameBoard;
-
     private Collection<Piece> whitePieces;
     private Collection<Piece> blackPieces;
-
     private WhitePlayer whitePlayer;
     private BlackPlayer blackPlayer;
     private Player currentPlayer;
-
     private Pawn enPassantPawn;
 
     public Board(BoardBuilder builder) {
@@ -127,6 +124,15 @@ public class Board {
         return gameBoard.get(coordinate);
     }
 
+    public List<Boolean> getCastlingRights() {
+        List<Boolean> castlingRights = new ArrayList<Boolean>(4);
+        castlingRights.add(whitePlayer.isKingSideCastleCapable());
+        castlingRights.add(whitePlayer.isQueenSideCastleCapable());
+        castlingRights.add(blackPlayer.isKingSideCastleCapable());
+        castlingRights.add(blackPlayer.isQueenSideCastleCapable());
+        return castlingRights;
+    }
+
     public Pawn getEnPassantPawn() {
         return enPassantPawn;
     }
@@ -150,7 +156,6 @@ public class Board {
         }
         return emptyBoard;
     }
-
 
     public static Board createStandardBoard() {
         BoardBuilder builder = new BoardBuilder();

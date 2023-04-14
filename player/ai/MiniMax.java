@@ -3,47 +3,43 @@ package player.ai;
 import board.Board;
 import board.Move;
 import board.MoveTransition;
-import player.Player;
+import player.ai.TranspositionTable.Entry;
 
-public class MiniMax implements MoveStrategy {
+public class MiniMax {
 
     private BoardEvaluator evaluator;
     private int searchDepth;
     private long boardsEvaluated;
-
-    private static final int NEGATIVE_INFINITY = Integer.MIN_VALUE;
-    private static final int POSITIVE_INFINITY = Integer.MAX_VALUE;
+    private TranspositionTable table;
 
     public MiniMax(int searchDepth) {
-        evaluator = new StandardBoardEvaluator();
+        this.evaluator = new BoardEvaluator();
         this.searchDepth = searchDepth;
         this.boardsEvaluated = 0;
+        this.table = new TranspositionTable(0);
+        Zobrist.generateZobristKeys();
     }
 
-    @Override
-    public Move execute(Board board) {
+    public Move getBestMove(Board board) {
         long startTIme = System.currentTimeMillis();
-        Player currentPlayer = board.currentPlayer();
-
-        Move bestMove = new Move.NullMove();
-        int highestSeenValue = NEGATIVE_INFINITY;
-        int lowestSeenValue = POSITIVE_INFINITY;
-        int currentValue;
         System.out.printf("%s is THINKING [depth = %s]%n", board.currentPlayer(), searchDepth);
-
-        int numMoves = board.currentPlayer().getLegalMoves().size();
+        
+        Move bestMove = new Move.NullMove();
+        int maxScore = Integer.MIN_VALUE;
+        int minScore = Integer.MAX_VALUE;
         for (Move move : board.currentPlayer().getLegalMoves()) {
-            MoveTransition moveTransition = board.currentPlayer().makeMove(move);
-            if (moveTransition.getMoveStatus().isDone()) {
-                currentValue = currentPlayer.getColor().isWhite() ?
-                               minimize(moveTransition.getTransitionBoard(), this.searchDepth - 1, highestSeenValue, lowestSeenValue) :
-                               maximize(moveTransition.getTransitionBoard(), this.searchDepth - 1, highestSeenValue, lowestSeenValue);
-
-                if (currentPlayer.getColor().isWhite() && currentValue > highestSeenValue) {
-                    highestSeenValue = currentValue;
+            MoveTransition transition = board.currentPlayer().makeMove(move);
+            if (transition.getMoveStatus().isDone()) {
+                int score = board.currentPlayer().getColor().isWhite() ?
+                                minimize(transition.getTransitionBoard(), searchDepth - 1, maxScore, minScore) :
+                                maximize(transition.getTransitionBoard(), searchDepth - 1, maxScore, minScore);
+                
+                if (board.currentPlayer().getColor().isWhite() && score > maxScore) {
+                    maxScore = score;
                     bestMove = move;
-                } else if (currentPlayer.getColor().isBlack() && currentValue < lowestSeenValue) {
-                    lowestSeenValue = currentValue;
+
+                } else if (board.currentPlayer().getColor().isBlack() && score < minScore) {
+                    minScore = score;
                     bestMove = move;
                 }
             }
@@ -56,9 +52,30 @@ public class MiniMax implements MoveStrategy {
     }
 
     public int maximize(Board board, int depth, int alpha, int beta) {
+        long key = Zobrist.hash(board);
+
+        // check if board already evaluated at deeper or same depth
+        if (table.contains(key) && table.get(key).getDepth() >= depth) {
+            Entry entry = table.get(key);
+            if (entry.getFlag() == TranspositionTable.EXACT) {
+                return entry.getScore();
+            } else if (entry.getFlag() == TranspositionTable.LOWER) {
+                alpha =  Math.max(alpha, entry.getScore());
+            } else {
+                beta = Math.min(beta, entry.getScore());
+            }
+            
+            // prune
+            if (alpha >= beta) {
+                return entry.getScore();
+            }
+        }
+
         if (depth == 0 || gameOver(board)) {
-            this.boardsEvaluated++;
-            return this.evaluator.evaluate(board, depth);
+            int score = evaluator.evaluate(board, depth);
+            table.put(key, new Entry(score, depth, TranspositionTable.EXACT));
+            boardsEvaluated++;
+            return score;
         }
 
         int max = alpha;
@@ -71,13 +88,35 @@ public class MiniMax implements MoveStrategy {
                 }
             }
         }
+
+        table.put(key, new Entry(max, depth, TranspositionTable.EXACT));
         return max;
     }
 
     public int minimize(Board board, int depth, int alpha, int beta) {
+        long key = Zobrist.hash(board);
+
+         // check if board already evaluated at deeper or same depth
+         if (table.contains(key) && table.get(key).getDepth() >= depth) {
+            Entry entry = table.get(key);
+            if (entry.getFlag() == TranspositionTable.EXACT) {
+                return entry.getScore();
+            } else if (entry.getFlag() == TranspositionTable.LOWER) {
+                alpha =  Math.max(alpha, entry.getScore());
+            } else {
+                beta = Math.min(beta, entry.getScore());
+            }
+
+            if (alpha >= beta) {
+                return entry.getScore();
+            }
+        }
+
         if (depth == 0 || gameOver(board)) {
-            this.boardsEvaluated++;
-            return this.evaluator.evaluate(board, depth);
+            int score = evaluator.evaluate(board, depth);
+            table.put(key, new Entry(score, depth, TranspositionTable.EXACT));
+            boardsEvaluated++;
+            return score;
         }
 
         int min = beta;
@@ -90,17 +129,23 @@ public class MiniMax implements MoveStrategy {
                 }
             }
         }
+        table.put(key, new Entry(min, depth, TranspositionTable.EXACT));
         return min;
     }
-    
+
+
+    private int quiescene(Board board, int alpha, int beta) {
+        int standingPat = (board.currentPlayer().getColor().isWhite() ? 1 : -1) * 
+                           evaluator.evaluate(board, 0);
+        
+
+
+        return 0;
+    }
+
     private static boolean gameOver(Board board) {
         return board.currentPlayer().isInCheckMate() ||
                board.currentPlayer().isInStaleMate();
-    }
-
-    @Override
-    public String toString() {
-        return "Minimax";
     }
 
 }

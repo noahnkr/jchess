@@ -15,7 +15,6 @@ public abstract class Move {
 
     protected boolean isFirstMove;
 
-
     public static final Move NULL_MOVE = new NullMove();
 
     public Move(Board board, Piece movedPiece, int destinationCoordinate) {

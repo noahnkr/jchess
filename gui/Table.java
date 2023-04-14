@@ -45,7 +45,6 @@ import board.Move.MoveFactory;
 import pieces.Piece;
 import pieces.Piece.PieceType;
 import player.ai.MiniMax;
-import player.ai.MoveStrategy;
 
 public class Table extends Observable {
 
@@ -304,8 +303,8 @@ public class Table extends Observable {
 
         @Override
         protected Move doInBackground() throws Exception {
-            MoveStrategy minimax = new MiniMax(Table.get().getGameSetup().getSearchDepth());
-            Move bestMove = minimax.execute(Table.get().getGameBoard());
+            MiniMax minimax = new MiniMax(Table.get().getGameSetup().getSearchDepth());
+            Move bestMove = minimax.getBestMove(Table.get().getGameBoard());
             return bestMove;
         }
 
