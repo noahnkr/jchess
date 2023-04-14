@@ -59,10 +59,6 @@ public class Rook extends Piece {
         return legalMoves;
     }
 
-    @Override
-    public int pieceSquareBonus() {
-        return this.pieceColor.rookBonus(piecePosition);
-    }
 
     /* Exceptions to knight move offset when its position is on the first or eighth column. */
 

@@ -68,11 +68,6 @@ public class King extends Piece {
         return legalMoves;
     }
 
-    @Override
-    public int pieceSquareBonus() {
-        return this.pieceColor.kingBonus(piecePosition);
-    }
-
     public boolean isCastled() {
         return this.isCastled;
     }

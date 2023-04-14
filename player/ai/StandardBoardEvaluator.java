@@ -1,7 +1,9 @@
 package player.ai;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import board.Board;
@@ -21,6 +23,94 @@ public class StandardBoardEvaluator implements BoardEvaluator {
 
     private static final int MOBILITY_WEIGHT = 5;
     private static final int ATTACKS_WEIGHT = 1;
+
+    private final static List<Integer> PAWN_PIECE_SQUARE_TABLE = Arrays.asList(
+        0,  0,  0,  0,  0,  0,  0,  0,
+        50, 50, 50, 50, 50, 50, 50, 50,
+        10, 10, 20, 30, 30, 20, 10, 10,
+        5,  5, 10, 25, 25, 10,  5,  5,
+        0,  0,  0, 20, 20,  0,  0,  0,
+        5, -5,-10,  0,  0,-10, -5,  5,
+        5, 10, 10,-20,-20, 10, 10,  5,
+        0,  0,  0,  0,  0,  0,  0,  0
+    );
+
+
+    private final static List<Integer> KNIGHT_PIECE_SQUARE_TABLE = Arrays.asList(
+        -50,-40,-30,-30,-30,-30,-40,-50,
+        -40,-20,  0,  5,  5,  0,-20,-40,
+        -30,  0, 10, 15, 15, 10,  0,-30,
+        -30,  5, 15, 20, 20, 15,  5,-30,
+        -30,  0, 15, 20, 20, 15,  0,-30,
+        -30,  5, 10, 15, 15, 10,  5,-30,
+        -40,-20,  0,  0,  0,  0,-20,-40,
+        -50,-40,-30,-30,-30,-30,-40,-50
+    );
+
+
+    private final static List<Integer> BISHOP_PIECE_SQUARE_TABLE = Arrays.asList(
+        -20,-10,-10,-10,-10,-10,-10,-20,
+        -10,  0,  0,  0,  0,  0,  0,-10,
+        -10,  0,  5, 10, 10,  5,  0,-10,
+        -10,  5,  5, 10, 10,  5,  5,-10,
+        -10,  0, 10, 15, 15, 10,  0,-10,
+        -10, 10, 10, 10, 10, 10, 10,-10,
+        -10,  5,  0,  0,  0,  0,  5,-10,
+        -20,-10,-10,-10,-10,-10,-10,-20
+    );
+
+
+    private final static List<Integer> ROOK_PIECE_SQUARE_TABLE = Arrays.asList(
+        0,  0,  0,  0,  0,  0,  0,  0,
+        5, 10, 10, 10, 10, 10, 10,  5,
+        5,  0,  0,  0,  0,  0,  0, -5,
+       -5,  0,  0,  0,  0,  0,  0, -5,
+       -5,  0,  0,  0,  0,  0,  0, -5,
+       -5,  0,  0,  0,  0,  0,  0, -5,
+       -5,  0,  0,  0,  0,  0,  0, -5,
+        0,  0,  0,  5,  5,  0,  0,  0
+    );
+
+
+    private final static List<Integer> QUEEN_PIECE_SQUARE_TABLE = Arrays.asList(
+        -20,-10,-10, -5, -5,-10,-10,-20,
+        -10,  0,  0,  0,  0,  0,  0,-10,
+        -10,  0,  5,  5,  5,  5,  0,-10,
+         -5,  0,  5,  5,  5,  5,  0, -5,
+          0,  0,  5,  5,  5,  5,  0, -5,
+        -10,  5,  5,  5,  5,  5,  0,-10,
+        -10,  0,  5,  0,  0,  0,  0,-10,
+        -20,-10,-10, -5, -5,-10,-10,-20
+    );
+
+
+    private final static List<Integer> KING_PIECE_SQUARE_TABLE_MIDGAME = Arrays.asList(
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -20,-30,-30,-40,-40,-30,-30,-20,
+        -10,-20,-20,-20,-20,-20,-20,-10,
+         20, 20,  0,  0,  0,  0, 20, 20,
+         20, 30, 10,  0,  0, 10, 30, 20
+    );
+
+    private final static List<Integer> KING_PIECE_SQUARE_TABLE_ENDGAME = Arrays.asList(
+        -50,-30,-30,-30,-30,-30,-30,-50,
+        -30,-30,  0,  0,  0,  0,-30,-30,
+        -30,-10, 20, 30, 30, 20,-10,-30,
+        -30,-10, 30, 40, 40, 30,-10,-30,
+        -30,-10, 30, 40, 40, 30,-10,-30,
+        -30,-10, 20, 30, 30, 20,-10,-30,
+        -30,-20,-10,  0,  0,-10,-20,-30,
+        -50,-40,-30,-20,-20,-30,-40,-50
+    );
+
+    private enum GamePhase {
+        OPENING,
+        MIDGAME,
+        ENDGAME
+    }
 
     @Override
     public int evaluate(Board board, int depth) {
@@ -42,7 +132,7 @@ public class StandardBoardEvaluator implements BoardEvaluator {
         int pieceValueScore = 0;
         int bishopCount = 0;
         for (Piece piece : player.getActivePieces()) {
-            pieceValueScore += piece.getPieceValue() + piece.pieceSquareBonus();
+            pieceValueScore += piece.getPieceValue() + pieceSquareBonus(piece, determineGamePhase(player));
 
             if (piece.getPieceType() == PieceType.BISHOP) {
                 bishopCount++;
@@ -50,6 +140,39 @@ public class StandardBoardEvaluator implements BoardEvaluator {
         }
 
         return pieceValueScore + (bishopCount == 2 ? DOUBLE_BISHOP_BONUS : 0);
+    }
+
+    private static int pieceSquareBonus(Piece piece, GamePhase gamePhase) {
+        switch (piece.getPieceType()) {
+            case PAWN:
+                return piece.getColor().isWhite() ? PAWN_PIECE_SQUARE_TABLE.get(piece.getPosition()) :
+                                                    blackPieceSquareTable(PAWN_PIECE_SQUARE_TABLE).get(piece.getPosition());
+            case KNIGHT:
+                return piece.getColor().isWhite() ? KNIGHT_PIECE_SQUARE_TABLE.get(piece.getPosition()) :
+                                                    blackPieceSquareTable(KNIGHT_PIECE_SQUARE_TABLE).get(piece.getPosition());
+            case BISHOP:
+                return piece.getColor().isWhite() ? BISHOP_PIECE_SQUARE_TABLE.get(piece.getPosition()) :
+                                                    blackPieceSquareTable(BISHOP_PIECE_SQUARE_TABLE).get(piece.getPosition());
+            case ROOK:
+                return piece.getColor().isWhite() ? ROOK_PIECE_SQUARE_TABLE.get(piece.getPosition()) :
+                                                    blackPieceSquareTable(ROOK_PIECE_SQUARE_TABLE).get(piece.getPosition());
+            case QUEEN:
+                return piece.getColor().isWhite() ? QUEEN_PIECE_SQUARE_TABLE.get(piece.getPosition()) :
+                                                    blackPieceSquareTable(QUEEN_PIECE_SQUARE_TABLE).get(piece.getPosition());
+            case KING:
+                return piece.getColor().isWhite() ? (gamePhase == GamePhase.ENDGAME ? KING_PIECE_SQUARE_TABLE_ENDGAME.get(piece.getPosition()) : 
+                                                                                      KING_PIECE_SQUARE_TABLE_MIDGAME.get(piece.getPosition())) : 
+                                                    (gamePhase == GamePhase.ENDGAME ? blackPieceSquareTable(KING_PIECE_SQUARE_TABLE_ENDGAME).get(piece.getPosition()) : 
+                                                                                      blackPieceSquareTable(KING_PIECE_SQUARE_TABLE_MIDGAME).get(piece.getPosition()));
+            default:
+                return 0;
+        }
+    }
+
+    private static List<Integer> blackPieceSquareTable(List<Integer> pieceSquareTable) {
+        List<Integer> temp = pieceSquareTable;
+        Collections.reverse(pieceSquareTable);
+        return temp;
     }
 
     private static int mobility(Player player) {
@@ -90,6 +213,23 @@ public class StandardBoardEvaluator implements BoardEvaluator {
     private static int pawnStructure(Player player) {
         return PawnStructureAnalyzer.pawnStructureScore(player);
     }
+
+    private static GamePhase determineGamePhase(Player player) {
+        List<Piece> allPieces = new ArrayList<>();
+        allPieces.addAll(player.getActivePieces());
+        allPieces.addAll(player.getOpponent().getActivePieces());
+
+        int npm = 0;
+        for (Piece piece : allPieces) {
+            if (piece.getPieceType() != PieceType.PAWN) {
+                npm++;
+            }
+        }
+        return npm < 7 ? GamePhase.ENDGAME : GamePhase.MIDGAME;
+    }
+
+    
+
 
     private final class PawnStructureAnalyzer {
 

@@ -78,8 +78,6 @@ public abstract class Piece {
 
     public abstract Piece movePiece(Move move);
 
-    public abstract int pieceSquareBonus();
-
     public enum PieceType {
         PAWN("P", 100),
         KNIGHT("N", 320),
