@@ -10,7 +10,6 @@ import java.util.Map;
 import player.BlackPlayer;
 import player.Player;
 import player.WhitePlayer;
-import player.ai.Zobrist;
 import pieces.*;
 
 public class Board {
@@ -137,6 +136,15 @@ public class Board {
         return enPassantPawn;
     }
 
+    public static boolean gameOver(Board board) {
+        return board.currentPlayer().isInCheckMate() ||
+        board.currentPlayer().isInStaleMate();
+    }
+
+    public static boolean isThreatenedBoardImmediate(Board board) {
+        return board.whitePlayer().isInCheck() || board.blackPlayer().isInCheck();
+    }
+
     public static int getCoordinateAtPosition(String position) {
         return POSITION_TO_COORDINATE.get(position);
     }
@@ -227,9 +235,7 @@ public class Board {
         }
     }
 
-    public static boolean isThreatenedBoardImmediate(Board board) {
-        return board.whitePlayer().isInCheck() || board.blackPlayer().isInCheck();
-    }
+    
 
     private static boolean[] initColumn(int columnNumber) {
         boolean[] column = new boolean[NUM_TILES];
