@@ -46,9 +46,19 @@ public abstract class Player {
         return legalMoves;
     }
 
+    public Collection<Move> getCaptureMoves() {
+        Collection<Move> captureMoves = new ArrayList<Move>();
+        for (Move move : legalMoves) {
+            if (move.isAttackMove()) {
+                captureMoves.add(move);
+            }
+        }
+        return captureMoves;
+    }
+
     public Collection<Move> getCastlingMoves() {
         Collection<Move> castlingMoves = new ArrayList<Move>();
-        for (Move move : this.legalMoves) {
+        for (Move move : legalMoves) {
             if (move.isCastlingMove()) {
                 castlingMoves.add(move);
             }

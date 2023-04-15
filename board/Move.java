@@ -5,7 +5,7 @@ import pieces.Pawn;
 import pieces.Piece;
 import pieces.Rook;
 
-public abstract class Move {
+public abstract class Move implements Comparable<Move> {
 
     protected Board board;
 
@@ -29,6 +29,11 @@ public abstract class Move {
         this.destinationCoordinate = destinationCoordinate;
         this.movedPiece = null;
         this.isFirstMove = false;
+    }
+
+    @Override
+    public int compareTo(Move otherMove) {
+        return Integer.compare(this.getMoveValue(), otherMove.getMoveValue());
     }
 
     @Override
@@ -66,12 +71,35 @@ public abstract class Move {
         return "";
     }
 
+    public int getMoveValue() {
+        int value = 0;
+            if (isAttackMove()) {
+                value += getAttackedPiece().getPieceValue();
+            }
+
+            MoveTransition transition = getBoard().currentPlayer().makeMove(this);
+            if (transition.getMoveStatus() == MoveStatus.LEAVES_PLAYER_IN_CHECK) {
+                value += 50;
+            }
+
+            if (isPromotion()) {
+                value += 100;
+            }
+            
+            return value;
+    }
+
+
     public int getCurrentCoordinate() {
         return this.movedPiece.getPosition();
     }
 
     public int getDestinationCoordinate() {
         return this.destinationCoordinate;
+    }
+
+    public Board getBoard() {
+        return board;
     }
 
     public Piece getMovedPiece() {
@@ -102,6 +130,7 @@ public abstract class Move {
 
     public abstract boolean isAttackMove();
     public abstract boolean isCastlingMove();
+    public abstract boolean isPromotion();
 
     public static class BasicMove extends Move {
 
@@ -127,6 +156,11 @@ public abstract class Move {
 
         @Override
         public boolean isCastlingMove() {
+            return false;
+        }
+
+        @Override
+        public boolean isPromotion() {
             return false;
         }
     }
@@ -179,6 +213,11 @@ public abstract class Move {
         public boolean isCastlingMove() {
             return false;
         }
+
+        @Override
+        public boolean isPromotion() {
+            return false;
+        }
     }
 
     public static class BasicAttackMove extends AttackMove {
@@ -214,6 +253,12 @@ public abstract class Move {
         public boolean isCastlingMove() {
             return false;
         }
+
+        @Override
+        public boolean isPromotion() {
+            return false;
+        }
+        
         
     }
 
@@ -259,6 +304,11 @@ public abstract class Move {
         @Override
         public String toString() {
             return Board.getPositionAtCoordinate(destinationCoordinate) + "=Q";
+        }
+
+        @Override
+        public boolean isPromotion() {
+            return true;
         }
         
     }
@@ -311,6 +361,11 @@ public abstract class Move {
         }
 
         @Override
+        public boolean isPromotion() {
+            return true;
+        }
+
+        @Override
         public String toString() {
             return Board.getPositionAtCoordinate(destinationCoordinate) + "x=Q";
         }
@@ -352,6 +407,11 @@ public abstract class Move {
         @Override
         public String toString() {
             return Board.getPositionAtCoordinate(this.destinationCoordinate);
+        }
+
+        @Override
+        public boolean isPromotion() {
+            return false;
         }
         
     }
@@ -490,6 +550,11 @@ public abstract class Move {
             return true;
         }
 
+        @Override
+        public boolean isPromotion() {
+            return false;
+        }
+
     }
 
     public static class KingSideCastleMove extends CastleMove {
@@ -553,6 +618,11 @@ public abstract class Move {
 
         @Override
         public boolean isCastlingMove() {
+            return false;
+        }
+
+        @Override
+        public boolean isPromotion() {
             return false;
         }
         
