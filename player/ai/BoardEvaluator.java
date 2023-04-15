@@ -18,7 +18,7 @@ public class BoardEvaluator {
     private static final int CHECK_BONUS = 50;
     private static final int CHECK_MATE_BONUS = 10000;
     private static final int DEPTH_BONUS = 100;
-    private static final int CASTLE_BONUS = 25;
+    private static final int CASTLE_BONUS = 50;
     private static final int DOUBLE_BISHOP_BONUS = 25;
 
     private static final int MOBILITY_WEIGHT = 5;

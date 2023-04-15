@@ -303,7 +303,7 @@ public class Table extends Observable {
 
         @Override
         protected Move doInBackground() throws Exception {
-            MiniMax minimax = new MiniMax(Table.get().getGameSetup().getSearchDepth(),;
+            MiniMax minimax = new MiniMax(Table.get().getGameSetup().getSearchDepth());
             Move bestMove = minimax.getBestMove(Table.get().getGameBoard());
             return bestMove;
         }
