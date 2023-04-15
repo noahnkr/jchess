@@ -46,9 +46,19 @@ public abstract class Player {
         return legalMoves;
     }
 
+    public Collection<Move> getCaptureMoves() {
+        Collection<Move> captureMoves = new ArrayList<Move>();
+        for (Move move : legalMoves) {
+            if (move.isAttackMove()) {
+                captureMoves.add(move);
+            }
+        }
+        return captureMoves;
+    }
+
     public Collection<Move> getCastlingMoves() {
         Collection<Move> castlingMoves = new ArrayList<Move>();
-        for (Move move : this.legalMoves) {
+        for (Move move : legalMoves) {
             if (move.isCastlingMove()) {
                 castlingMoves.add(move);
             }
@@ -108,7 +118,7 @@ public abstract class Player {
     public MoveTransition makeMove(Move move) {
 
         if (!isMoveLegal(move)) {
-            return new MoveTransition(this.board, MoveStatus.ILLEGAL_MOVE);
+            return new MoveTransition(this.board, move, MoveStatus.ILLEGAL_MOVE);
         }
 
         Board transitionBoard = move.execute();
@@ -116,10 +126,10 @@ public abstract class Player {
                                                                     transitionBoard.currentPlayer().getLegalMoves());
 
         if (!kingAttacks.isEmpty()) {
-            return new MoveTransition(this.board, MoveStatus.LEAVES_PLAYER_IN_CHECK);
+            return new MoveTransition(this.board, move, MoveStatus.LEAVES_PLAYER_IN_CHECK);
         }
 
-        return new MoveTransition(transitionBoard, MoveStatus.DONE);
+        return new MoveTransition(transitionBoard, move, MoveStatus.DONE);
     }
 
     public abstract Collection<Piece> getActivePieces();

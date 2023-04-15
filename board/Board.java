@@ -3,7 +3,6 @@ package board;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,14 +31,11 @@ public class Board {
     public static final boolean[] EIGHTH_ROW = initRow(56);
 
     private List<Tile> gameBoard;
-
     private Collection<Piece> whitePieces;
     private Collection<Piece> blackPieces;
-
     private WhitePlayer whitePlayer;
     private BlackPlayer blackPlayer;
     private Player currentPlayer;
-
     private Pawn enPassantPawn;
 
     public Board(BoardBuilder builder) {
@@ -116,7 +112,7 @@ public class Board {
         return legalMoves;
     }
 
-    public Iterable<Move> getAllLegalMoves() {
+    public List<Move> getAllLegalMoves() {
         List<Move> allLegalMoves = new ArrayList<>();
         allLegalMoves.addAll(this.whitePlayer.getLegalMoves());
         allLegalMoves.addAll(this.blackPlayer.getLegalMoves());
@@ -127,10 +123,27 @@ public class Board {
         return gameBoard.get(coordinate);
     }
 
+    public List<Boolean> getCastlingRights() {
+        List<Boolean> castlingRights = new ArrayList<Boolean>(4);
+        castlingRights.add(whitePlayer.isKingSideCastleCapable());
+        castlingRights.add(whitePlayer.isQueenSideCastleCapable());
+        castlingRights.add(blackPlayer.isKingSideCastleCapable());
+        castlingRights.add(blackPlayer.isQueenSideCastleCapable());
+        return castlingRights;
+    }
+
     public Pawn getEnPassantPawn() {
         return enPassantPawn;
     }
 
+    public boolean gameOver() {
+        return currentPlayer().isInCheckMate() || currentPlayer().isInStaleMate();
+    }
+
+    public boolean isKingThreatened() {
+        return whitePlayer().isInCheck() || blackPlayer().isInCheck();
+    } 
+ 
     public static int getCoordinateAtPosition(String position) {
         return POSITION_TO_COORDINATE.get(position);
     }
@@ -150,7 +163,6 @@ public class Board {
         }
         return emptyBoard;
     }
-
 
     public static Board createStandardBoard() {
         BoardBuilder builder = new BoardBuilder();
@@ -222,9 +234,7 @@ public class Board {
         }
     }
 
-    public static boolean isThreatenedBoardImmediate(Board board) {
-        return board.whitePlayer().isInCheck() || board.blackPlayer().isInCheck();
-    }
+    
 
     private static boolean[] initColumn(int columnNumber) {
         boolean[] column = new boolean[NUM_TILES];

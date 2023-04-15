@@ -1,49 +1,49 @@
 package player.ai;
 
+import java.util.Collection;
+import java.util.Comparator;
+
+import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.Ordering;
+
 import board.Board;
 import board.Move;
 import board.MoveTransition;
-import player.Player;
 
-public class MiniMax implements MoveStrategy {
+public class MiniMax {
 
     private BoardEvaluator evaluator;
     private int searchDepth;
-    private long boardsEvaluated;
-
-    private static final int NEGATIVE_INFINITY = Integer.MIN_VALUE;
-    private static final int POSITIVE_INFINITY = Integer.MAX_VALUE;
+    private MoveSorter moveSorter;
+    private int boardsEvaluated;
 
     public MiniMax(int searchDepth) {
-        evaluator = new StandardBoardEvaluator();
+        this.evaluator = new BoardEvaluator();
         this.searchDepth = searchDepth;
+        this.moveSorter = MoveSorter.SORT;
         this.boardsEvaluated = 0;
     }
 
-    @Override
-    public Move execute(Board board) {
+    public Move getBestMove(Board board) {
         long startTIme = System.currentTimeMillis();
-        Player currentPlayer = board.currentPlayer();
-
-        Move bestMove = new Move.NullMove();
-        int highestSeenValue = NEGATIVE_INFINITY;
-        int lowestSeenValue = POSITIVE_INFINITY;
-        int currentValue;
         System.out.printf("%s is THINKING [depth = %s]%n", board.currentPlayer(), searchDepth);
-
-        int numMoves = board.currentPlayer().getLegalMoves().size();
-        for (Move move : board.currentPlayer().getLegalMoves()) {
-            MoveTransition moveTransition = board.currentPlayer().makeMove(move);
-            if (moveTransition.getMoveStatus().isDone()) {
-                currentValue = currentPlayer.getColor().isWhite() ?
-                               minimize(moveTransition.getTransitionBoard(), this.searchDepth - 1, highestSeenValue, lowestSeenValue) :
-                               maximize(moveTransition.getTransitionBoard(), this.searchDepth - 1, highestSeenValue, lowestSeenValue);
-
-                if (currentPlayer.getColor().isWhite() && currentValue > highestSeenValue) {
-                    highestSeenValue = currentValue;
+        
+        Move bestMove = new Move.NullMove();
+        int maxScore = Integer.MIN_VALUE;
+        int minScore = Integer.MAX_VALUE;
+        for (Move move : moveSorter.sort(board.currentPlayer().getLegalMoves())) {
+            MoveTransition transition = board.currentPlayer().makeMove(move);
+            if (transition.getMoveStatus().isDone()) {
+                int score = board.currentPlayer().getColor().isWhite() ? 
+                        min(transition.getTransitionBoard(), searchDepth - 1, maxScore, minScore) :
+                        max(transition.getTransitionBoard(), searchDepth - 1, maxScore, minScore);
+        
+                if (board.currentPlayer().getColor().isWhite() && score > maxScore) {
+                    maxScore = score;
                     bestMove = move;
-                } else if (currentPlayer.getColor().isBlack() && currentValue < lowestSeenValue) {
-                    lowestSeenValue = currentValue;
+
+                } else if (board.currentPlayer().getColor().isBlack() && score < minScore) {
+                    minScore = score;
                     bestMove = move;
                 }
             }
@@ -55,52 +55,66 @@ public class MiniMax implements MoveStrategy {
         return bestMove;
     }
 
-    public int maximize(Board board, int depth, int alpha, int beta) {
-        if (depth == 0 || gameOver(board)) {
-            this.boardsEvaluated++;
-            return this.evaluator.evaluate(board, depth);
+    public int max(Board board, int depth, int alpha, int beta) {
+        if (depth == 0 || board.gameOver()) {
+            boardsEvaluated++;
+            return evaluator.evaluate(board, depth);
         }
 
-        int max = alpha;
-        for (Move move : board.currentPlayer().getLegalMoves()) {
+        int maxScore = alpha;
+        for (Move move : moveSorter.sort(board.currentPlayer().getLegalMoves())) {
             MoveTransition moveTransition = board.currentPlayer().makeMove(move);
             if (moveTransition.getMoveStatus().isDone()) {
-                max = Math.max(max, minimize(moveTransition.getTransitionBoard(), depth - 1, max, beta));
-                if (beta <= max) {
+                maxScore = Math.max(maxScore, min(moveTransition.getTransitionBoard(), depth - 1, maxScore, beta));
+                if (beta <= maxScore) {
                     break;
                 }
             }
         }
-        return max;
+        return maxScore;
     }
-
-    public int minimize(Board board, int depth, int alpha, int beta) {
-        if (depth == 0 || gameOver(board)) {
-            this.boardsEvaluated++;
-            return this.evaluator.evaluate(board, depth);
+ 
+    public int min(Board board, int depth, int alpha, int beta) {
+        if (depth == 0 || board.gameOver()) {
+            boardsEvaluated++;
+            return evaluator.evaluate(board, depth);
         }
-
-        int min = beta;
-        for (Move move : board.currentPlayer().getLegalMoves()) {
+            
+        int minScore = beta;
+        for (Move move : moveSorter.sort(board.currentPlayer().getLegalMoves())) {
             MoveTransition moveTransition = board.currentPlayer().makeMove(move);
             if (moveTransition.getMoveStatus().isDone()) {
-                min = Math.min(min, maximize(moveTransition.getTransitionBoard(), depth - 1, alpha, min));
-                if (min <= alpha) {
+                minScore = Math.min(minScore, max(moveTransition.getTransitionBoard(), depth - 1, alpha, minScore));
+                if (minScore <= alpha) {
                     break;
                 }
             }
         }
-        return min;
-    }
-    
-    private static boolean gameOver(Board board) {
-        return board.currentPlayer().isInCheckMate() ||
-               board.currentPlayer().isInStaleMate();
+        return minScore;
     }
 
-    @Override
-    public String toString() {
-        return "Minimax";
-    }
 
+    private enum MoveSorter {
+
+        SORT {
+            @Override
+            Collection<Move> sort(final Collection<Move> moves) {
+                return Ordering.from(SMART_SORT).immutableSortedCopy(moves);
+            }
+        };
+
+        public static Comparator<Move> SMART_SORT = new Comparator<Move>() {
+            @Override
+            public int compare(final Move move1, final Move move2) {
+                return ComparisonChain.start()
+                        .compareTrueFirst(move1.getBoard().isKingThreatened(), move2.getBoard().isKingThreatened())
+                        .compareTrueFirst(move1.isAttackMove(), move2.isAttackMove())
+                        .compareTrueFirst(move1.isCastlingMove(), move2.isCastlingMove())
+                        .compare(move2.getMovedPiece().getPieceValue(), move1.getMovedPiece().getPieceValue())
+                        .result();
+            }
+        };
+
+        abstract Collection<Move> sort(Collection<Move> moves);
+    }
 }
