@@ -112,7 +112,7 @@ public class Board {
         return legalMoves;
     }
 
-    public Iterable<Move> getAllLegalMoves() {
+    public List<Move> getAllLegalMoves() {
         List<Move> allLegalMoves = new ArrayList<>();
         allLegalMoves.addAll(this.whitePlayer.getLegalMoves());
         allLegalMoves.addAll(this.blackPlayer.getLegalMoves());
@@ -136,15 +136,14 @@ public class Board {
         return enPassantPawn;
     }
 
-    public static boolean gameOver(Board board) {
-        return board.currentPlayer().isInCheckMate() ||
-        board.currentPlayer().isInStaleMate();
+    public boolean gameOver() {
+        return currentPlayer().isInCheckMate() || currentPlayer().isInStaleMate();
     }
 
-    public static boolean isThreatenedBoardImmediate(Board board) {
-        return board.whitePlayer().isInCheck() || board.blackPlayer().isInCheck();
-    }
-
+    public boolean isKingThreatened() {
+        return whitePlayer().isInCheck() || blackPlayer().isInCheck();
+    } 
+ 
     public static int getCoordinateAtPosition(String position) {
         return POSITION_TO_COORDINATE.get(position);
     }

@@ -56,7 +56,7 @@ public class MiniMax {
     }
 
     public int max(Board board, int depth, int alpha, int beta) {
-        if (depth == 0 || Board.gameOver(board)) {
+        if (depth == 0 || board.gameOver()) {
             boardsEvaluated++;
             return evaluator.evaluate(board, depth);
         }
@@ -73,13 +73,13 @@ public class MiniMax {
         }
         return maxScore;
     }
-
+ 
     public int min(Board board, int depth, int alpha, int beta) {
-        if (depth == 0 || Board.gameOver(board)) {
-            this.boardsEvaluated++;
-            return this.evaluator.evaluate(board, depth);
+        if (depth == 0 || board.gameOver()) {
+            boardsEvaluated++;
+            return evaluator.evaluate(board, depth);
         }
-
+            
         int minScore = beta;
         for (Move move : moveSorter.sort(board.currentPlayer().getLegalMoves())) {
             MoveTransition moveTransition = board.currentPlayer().makeMove(move);
@@ -107,7 +107,7 @@ public class MiniMax {
             @Override
             public int compare(final Move move1, final Move move2) {
                 return ComparisonChain.start()
-                        .compareTrueFirst(Board.isThreatenedBoardImmediate(move1.getBoard()), Board.isThreatenedBoardImmediate(move2.getBoard()))
+                        .compareTrueFirst(move1.getBoard().isKingThreatened(), move2.getBoard().isKingThreatened())
                         .compareTrueFirst(move1.isAttackMove(), move2.isAttackMove())
                         .compareTrueFirst(move1.isCastlingMove(), move2.isCastlingMove())
                         .compare(move2.getMovedPiece().getPieceValue(), move1.getMovedPiece().getPieceValue())
@@ -117,8 +117,4 @@ public class MiniMax {
 
         abstract Collection<Move> sort(Collection<Move> moves);
     }
-
-
-
-
 }
