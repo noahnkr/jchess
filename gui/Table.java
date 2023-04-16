@@ -619,7 +619,14 @@ public class Table extends Observable {
 
         private Collection<Move> pieceLegalMoves(Board board) {
             if (movedPiece != null && movedPiece.getColor() == board.currentPlayer().getColor()) {
-                return movedPiece.calculateLegalMoves(board);
+                Collection<Move> legalMoves = new ArrayList<>();
+                for (Move move : movedPiece.calculateLegalMoves(board)) {
+                    MoveTransition transition = board.currentPlayer().makeMove(move);
+                    if (transition.getMoveStatus().isDone()) {
+                        legalMoves.add(move);
+                    }
+                }
+                return legalMoves;
             }
             return Collections.emptyList();
         }

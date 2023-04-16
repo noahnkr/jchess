@@ -9,19 +9,23 @@ import com.google.common.collect.Ordering;
 import board.Board;
 import board.Move;
 import board.MoveTransition;
+import player.ai.TranspositionTable.Entry;
 
 public class MiniMax {
 
     private BoardEvaluator evaluator;
+    private TranspositionTable transpositionTable;
     private int searchDepth;
     private MoveSorter moveSorter;
     private int boardsEvaluated;
 
     public MiniMax(int searchDepth) {
         this.evaluator = new BoardEvaluator();
+        this.transpositionTable = new TranspositionTable(searchDepth);
         this.searchDepth = searchDepth;
         this.moveSorter = MoveSorter.SORT;
         this.boardsEvaluated = 0;
+        Zobrist.generateZobristKeys();
     }
 
     public Move getBestMove(Board board) {
@@ -56,6 +60,24 @@ public class MiniMax {
     }
 
     public int minimax(Board board, int depth, int alpha, int beta, boolean isMaximizingPlayer) {
+        long key = Zobrist.hash(board);
+
+        // if board alredy evaluated at same or a deeper depth
+        if (transpositionTable.contains(key) && transpositionTable.get(key).getDepth() >= depth) {
+            Entry entry = transpositionTable.get(key);
+            if (entry.getFlag() == TranspositionTable.EXACT) {
+                return entry.getScore();
+            } else if (entry.getFlag() == TranspositionTable.LOWER) {
+                alpha = Math.max(alpha, entry.getScore());
+            } else {
+                beta = Math.min(beta, entry.getScore());
+            }
+
+            if (alpha >= beta) {
+                return entry.getScore();
+            }
+        }
+
         if (depth == 0 || board.gameOver()) {
             boardsEvaluated++;
             return evaluator.evaluate(board, depth);
@@ -72,6 +94,9 @@ public class MiniMax {
                     }
                 }
             }
+
+            int flag = maxScore <= alpha ? TranspositionTable.EXACT : TranspositionTable.LOWER;
+            transpositionTable.put(key, new Entry(maxScore, depth, flag));
             return maxScore;
         } else {
             int minScore = beta;
@@ -84,6 +109,9 @@ public class MiniMax {
                     }
                 }
             }
+
+            int flag = minScore >= beta ? TranspositionTable.EXACT : TranspositionTable.UPPER;
+            transpositionTable.put(key, new Entry(minScore, depth, flag));
             return minScore;
         }
     }

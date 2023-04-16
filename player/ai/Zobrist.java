@@ -14,7 +14,7 @@ public class Zobrist {
     private static long blackMoveKey;
 
     public static void generateZobristKeys() {
-        Random rand = new Random();
+        Random rand = new Random(1234567890L);
         piecesKey = new long[2][6][64];
         for (int i = 0; i < 2; i++) {
             for (int j = 0; j < 6; j++) {

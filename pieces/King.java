@@ -1,6 +1,7 @@
 package pieces;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import board.Board;
@@ -64,7 +65,9 @@ public class King extends Piece {
                 }
             }
         }
+
         
+
         return legalMoves;
     }
 

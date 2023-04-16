@@ -46,6 +46,7 @@ public abstract class Player {
         return legalMoves;
     }
 
+
     public Collection<Move> getCaptureMoves() {
         Collection<Move> captureMoves = new ArrayList<Move>();
         for (Move move : legalMoves) {
@@ -66,7 +67,7 @@ public abstract class Player {
         return castlingMoves;
     }
 
-    protected static Collection<Move> calculateAttacksOnTile(int piecePosition, Collection<Move> opponentMoves) {
+    public static Collection<Move> calculateAttacksOnTile(int piecePosition, Collection<Move> opponentMoves) {
         List<Move> attackMoves = new ArrayList<>();
         for (Move move : opponentMoves) {
             if (piecePosition == move.getDestinationCoordinate()) {
@@ -122,7 +123,7 @@ public abstract class Player {
         }
 
         Board transitionBoard = move.execute();
-        Collection<Move> kingAttacks = Player.calculateAttacksOnTile(transitionBoard.currentPlayer().getOpponent().getPlayerKing().getPosition(),
+        Collection<Move> kingAttacks = calculateAttacksOnTile(transitionBoard.currentPlayer().getOpponent().getPlayerKing().getPosition(),
                                                                     transitionBoard.currentPlayer().getLegalMoves());
 
         if (!kingAttacks.isEmpty()) {
