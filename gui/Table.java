@@ -67,7 +67,6 @@ public class Table extends Observable {
 
     private BoardDirection boardDirection;
     private boolean highlightLegalMoves;
-    private boolean gameStarted;
 
     private static final Dimension OUTER_FRAME_DIMENSION = new Dimension(1000, 800);
     private static final Dimension BOARD_PANEL_DIMENSION = new Dimension(400, 350);
@@ -91,7 +90,6 @@ public class Table extends Observable {
         this.takenPiecesPanel = new TakenPiecesPanel();
         this.boardDirection = BoardDirection.NORMAL;
         this.highlightLegalMoves = true;
-        this.gameStarted = false;
         this.gameFrame.setSize(OUTER_FRAME_DIMENSION);
         this.gameFrame.setResizable(false);
         this.boardPanel = new BoardPanel();
@@ -123,6 +121,7 @@ public class Table extends Observable {
         JMenuBar tableMenuBar = new JMenuBar();
         tableMenuBar.add(createFileMenu());
         tableMenuBar.add(createPreferencesMenu());
+        tableMenuBar.add(createOptionsMenu());
         return tableMenuBar;
     }
 
@@ -196,6 +195,37 @@ public class Table extends Observable {
         return preferencesMenu;
     }
 
+    private JMenu createOptionsMenu() {
+        JMenu optionsMenu = new JMenu("Options");
+
+        JMenuItem undoMoveMenuItem = new JMenuItem("Undo Move");
+        undoMoveMenuItem.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.out.println("Undoing Last Move.");
+                Table.get().undoLastMove();
+            }
+            
+        });
+
+        JMenuItem resetBoardMenuItem = new JMenuItem("Reset Board");
+        resetBoardMenuItem.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.out.println("Resetting Board.");
+                Table.get().undoAllMoves();
+            }
+            
+        });
+
+        optionsMenu.add(undoMoveMenuItem);
+        optionsMenu.add(resetBoardMenuItem);
+        
+        return optionsMenu;
+    }
+
     private static Map<String, Image> setupPieceIconMap() {
         Map<String, Image> pieceIconMap = new HashMap<>();
         try {
@@ -217,14 +247,6 @@ public class Table extends Observable {
         }
         
         return pieceIconMap;
-    }
-
-    public void startGame() {
-        this.gameStarted = true;
-    }
-
-    public void stopGame() {
-        this.gameStarted = true;
     }
 
     public void updateGameBoard(Board board) {
@@ -274,6 +296,34 @@ public class Table extends Observable {
         
     }
 
+    private void undoLastMove() {
+        Move lastMove = Table.get().getMoveLog().removeMove(Table.get().getMoveLog().size() - 1).move;
+        this.gameBoard = this.gameBoard.currentPlayer().unMakeMove(lastMove).getToBoard();
+        this.computerMove = null;
+        Table.get().getMoveLog().removeMove(lastMove);
+        Table.get().getGameHistoryPanel().redo(gameBoard, Table.get().getMoveLog());
+        Table.get().getTakenPiecesPanel().redo(Table.get().getMoveLog());
+        Table.get().clearLastMove();
+        Table.get().getBoardPanel().drawBoard(gameBoard, true);
+    }
+
+    public void undoAllMoves() {
+        for (int i = Table.get().getMoveLog().size() - 1; i >= 0; i--) {
+            Move lastMove = Table.get().getMoveLog().removeMove(Table.get().getMoveLog().size() - 1).move;
+            this.gameBoard = this.gameBoard.currentPlayer().unMakeMove(lastMove).getToBoard();
+        }
+        this.computerMove = null;
+        Table.get().getMoveLog().clear();
+        Table.get().getGameHistoryPanel().redo(gameBoard, Table.get().getMoveLog());
+        Table.get().getTakenPiecesPanel().redo(Table.get().getMoveLog());
+        Table.get().clearLastMove();
+        Table.get().getBoardPanel().drawBoard(gameBoard, true);
+    }
+
+    public void clearLastMove() {
+        this.lastMove = null;
+    }
+
     private static class TableGameAIWatcher implements Observer {
 
         @Override
@@ -314,7 +364,7 @@ public class Table extends Observable {
                 Move bestMove = get();
                 Table.get().updateComputerMove(bestMove);
                 Table.get().setLastMove(bestMove);
-                Table.get().updateGameBoard(Table.get().getGameBoard().currentPlayer().makeMove(bestMove).getTransitionBoard());
+                Table.get().updateGameBoard(Table.get().getGameBoard().currentPlayer().makeMove(bestMove).getToBoard());
                 Table.get().getMoveLog().addMove(bestMove);
                 Table.get().getGameHistoryPanel().redo(Table.get().getGameBoard(), Table.get().getMoveLog());
                 Table.get().getTakenPiecesPanel().redo(Table.get().getMoveLog());
@@ -415,7 +465,7 @@ public class Table extends Observable {
 
                 @Override
                 public void mousePressed(MouseEvent e) {
-                    if (!gameSetup.isAIPlayer(gameBoard.currentPlayer()) && gameStarted) {                    
+                    if (!gameSetup.isAIPlayer(gameBoard.currentPlayer())) {                    
                         if (sourceTile == null) {
                             sourceTile = gameBoard.getTile(getActualTileId(tileId));
                             movedPiece = sourceTile.getPiece();
@@ -435,7 +485,7 @@ public class Table extends Observable {
 
                 @Override
                 public void mouseReleased(MouseEvent e) {
-                    if (!gameSetup.isAIPlayer(gameBoard.currentPlayer()) && gameStarted) {    
+                    if (!gameSetup.isAIPlayer(gameBoard.currentPlayer())) {    
                         if (sourceTile != null) {
                             if (sourceTile.getTileCoordinate() != getActualTileId(tileId)) {
                                 Move move = MoveFactory.createMove(gameBoard, 
@@ -443,7 +493,7 @@ public class Table extends Observable {
                                                             destinationTile.getTileCoordinate());
                                 MoveTransition transition = gameBoard.currentPlayer().makeMove(move);
                                 if (transition.getMoveStatus().isDone()) {
-                                    gameBoard = transition.getTransitionBoard();
+                                    gameBoard = transition.getToBoard();
                                     moveLog.addMove(move); 
                                     setBackground(DESTINATION_TILE_COLOR);
                                     lastMove = move;
@@ -456,7 +506,7 @@ public class Table extends Observable {
                                                             destinationTile.getTileCoordinate());
                                 MoveTransition transition = gameBoard.currentPlayer().makeMove(move);
                                 if (transition.getMoveStatus().isDone()) {
-                                    gameBoard = transition.getTransitionBoard();
+                                    gameBoard = transition.getToBoard();
                                     moveLog.addMove(move); 
                                     setBackground(DESTINATION_TILE_COLOR);
                                     lastMove = move;
@@ -505,15 +555,11 @@ public class Table extends Observable {
 
         public void drawTile(Board board) {
             assignTileColor(board);
-            if (gameStarted) {
-                assignPiece(board);
-                highlightLegalMoves(board);
-                highlightLastMove(board);
-                highlightCheck(board);
-                highlightCheckMate(board);
-
-            }
-            
+            assignPiece(board);
+            highlightLegalMoves(board);
+            highlightLastMove(board);
+            highlightCheck(board);
+            highlightCheckMate(board);
             validate();
             repaint();
         }
@@ -668,8 +714,12 @@ public class Table extends Observable {
             this.moves.clear();
         }
 
-        public void removeMove(int index) {
-            this.moves.remove(index);
+        public boolean removeMove(Move move) {
+            return this.moves.remove(move);
+        }
+
+        public MoveStruct removeMove(int index) {
+            return this.moves.remove(index);
         }
 
     }

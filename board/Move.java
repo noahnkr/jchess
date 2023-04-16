@@ -128,6 +128,17 @@ public abstract class Move implements Comparable<Move> {
         return builder.build();
     }
 
+    public Board undo() {
+        BoardBuilder builder = new BoardBuilder();
+
+        for (Piece peice : this.board.getAllPieces()) {
+            builder.setPiece(peice);
+        }
+
+        builder.setMoveMaker(this.board.currentPlayer().getColor());
+        return builder.build();
+    }
+
     public abstract boolean isAttackMove();
     public abstract boolean isCastlingMove();
     public abstract boolean isPromotion();

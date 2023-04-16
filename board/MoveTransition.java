@@ -2,17 +2,24 @@ package board;
 
 public class MoveTransition {
 
-    private Board transitionBoard;
+    private Board fromBoard;
+    private Board toBoard;
     private Move move;
     private MoveStatus moveStatus;
 
-    public MoveTransition(Board transitionBoard, Move move, MoveStatus moveStatus) {
-        this.transitionBoard = transitionBoard;
+    public MoveTransition(Board fromBoard, Board toBoard, Move move, MoveStatus moveStatus) {
+        this.fromBoard = fromBoard;
+        this.toBoard = toBoard;
+        this.move = move;
         this.moveStatus = moveStatus;
     }
 
-    public Board getTransitionBoard() {
-        return transitionBoard;
+    public Board getFromBoard() {
+        return fromBoard;
+    }
+
+    public Board getToBoard() {
+        return toBoard;
     }
 
     public Move getMove() {

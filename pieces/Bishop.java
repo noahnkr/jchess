@@ -74,4 +74,5 @@ public class Bishop extends Piece {
     public Bishop movePiece(Move move) {
         return new Bishop(move.getDestinationCoordinate(), move.getMovedPiece().getColor());
     }
+
 }

@@ -35,8 +35,8 @@ public class MiniMax {
             MoveTransition transition = board.currentPlayer().makeMove(move);
             if (transition.getMoveStatus().isDone()) {
                 int score = board.currentPlayer().getColor().isWhite() ? 
-                        min(transition.getTransitionBoard(), searchDepth - 1, maxScore, minScore) :
-                        max(transition.getTransitionBoard(), searchDepth - 1, maxScore, minScore);
+                        min(transition.getToBoard(), searchDepth - 1, maxScore, minScore) :
+                        max(transition.getToBoard(), searchDepth - 1, maxScore, minScore);
         
                 if (board.currentPlayer().getColor().isWhite() && score > maxScore) {
                     maxScore = score;
@@ -65,7 +65,7 @@ public class MiniMax {
         for (Move move : moveSorter.sort(board.currentPlayer().getLegalMoves())) {
             MoveTransition moveTransition = board.currentPlayer().makeMove(move);
             if (moveTransition.getMoveStatus().isDone()) {
-                maxScore = Math.max(maxScore, min(moveTransition.getTransitionBoard(), depth - 1, maxScore, beta));
+                maxScore = Math.max(maxScore, min(moveTransition.getToBoard(), depth - 1, maxScore, beta));
                 if (beta <= maxScore) {
                     break;
                 }
@@ -84,7 +84,7 @@ public class MiniMax {
         for (Move move : moveSorter.sort(board.currentPlayer().getLegalMoves())) {
             MoveTransition moveTransition = board.currentPlayer().makeMove(move);
             if (moveTransition.getMoveStatus().isDone()) {
-                minScore = Math.min(minScore, max(moveTransition.getTransitionBoard(), depth - 1, alpha, minScore));
+                minScore = Math.min(minScore, max(moveTransition.getToBoard(), depth - 1, alpha, minScore));
                 if (minScore <= alpha) {
                     break;
                 }

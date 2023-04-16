@@ -64,9 +64,9 @@ public class GameSetup extends JDialog {
         okButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 System.out.println("Starting Game.");
+                Table.get().undoAllMoves();
                 whitePlayerType = whiteComputerButton.isSelected() ? PlayerType.COMPUTER : PlayerType.HUMAN;
                 blackPlayerType = blackComputerButton.isSelected() ? PlayerType.COMPUTER : PlayerType.HUMAN;
-                Table.get().startGame();
                 GameSetup.this.setVisible(false);
             }
         });

@@ -104,6 +104,19 @@ public class Board {
         return activePieces;
     }
 
+    public Collection<Piece> getAllPieces() {
+        List<Piece> activePieces = new ArrayList<>();
+        for (Piece piece : whitePieces) {
+            activePieces.add(piece);
+        }
+
+        for (Piece peice : blackPieces) {
+            activePieces.add(peice);
+        }
+        
+        return activePieces;
+    }
+
     private Collection<Move> getLegalMoves(Collection<Piece> pieces) {
         List<Move> legalMoves = new ArrayList<>();
         for (Piece piece : pieces) {
