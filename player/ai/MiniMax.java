@@ -35,8 +35,8 @@ public class MiniMax {
             MoveTransition transition = board.currentPlayer().makeMove(move);
             if (transition.getMoveStatus().isDone()) {
                 int score = board.currentPlayer().getColor().isWhite() ? 
-                        min(transition.getToBoard(), searchDepth - 1, maxScore, minScore) :
-                        max(transition.getToBoard(), searchDepth - 1, maxScore, minScore);
+                        minimax(transition.getToBoard(), searchDepth - 1, maxScore, minScore, false) :
+                        minimax(transition.getToBoard(), searchDepth - 1, maxScore, minScore, true);
         
                 if (board.currentPlayer().getColor().isWhite() && score > maxScore) {
                     maxScore = score;
@@ -55,42 +55,37 @@ public class MiniMax {
         return bestMove;
     }
 
-    public int max(Board board, int depth, int alpha, int beta) {
+    public int minimax(Board board, int depth, int alpha, int beta, boolean isMaximizingPlayer) {
         if (depth == 0 || board.gameOver()) {
             boardsEvaluated++;
             return evaluator.evaluate(board, depth);
         }
 
-        int maxScore = alpha;
-        for (Move move : moveSorter.sort(board.currentPlayer().getLegalMoves())) {
-            MoveTransition moveTransition = board.currentPlayer().makeMove(move);
-            if (moveTransition.getMoveStatus().isDone()) {
-                maxScore = Math.max(maxScore, min(moveTransition.getToBoard(), depth - 1, maxScore, beta));
-                if (beta <= maxScore) {
-                    break;
+        if (isMaximizingPlayer) {
+            int maxScore = alpha;
+            for (Move move : moveSorter.sort(board.currentPlayer().getLegalMoves())) {
+                MoveTransition moveTransition = board.currentPlayer().makeMove(move);
+                if (moveTransition.getMoveStatus().isDone()) {
+                    maxScore = Math.max(maxScore, minimax(moveTransition.getToBoard(), depth - 1, maxScore, beta, false));
+                    if (beta <= maxScore) {
+                        break;
+                    }
                 }
             }
-        }
-        return maxScore;
-    }
- 
-    public int min(Board board, int depth, int alpha, int beta) {
-        if (depth == 0 || board.gameOver()) {
-            boardsEvaluated++;
-            return evaluator.evaluate(board, depth);
-        }
-            
-        int minScore = beta;
-        for (Move move : moveSorter.sort(board.currentPlayer().getLegalMoves())) {
-            MoveTransition moveTransition = board.currentPlayer().makeMove(move);
-            if (moveTransition.getMoveStatus().isDone()) {
-                minScore = Math.min(minScore, max(moveTransition.getToBoard(), depth - 1, alpha, minScore));
-                if (minScore <= alpha) {
-                    break;
+            return maxScore;
+        } else {
+            int minScore = beta;
+            for (Move move : moveSorter.sort(board.currentPlayer().getLegalMoves())) {
+                MoveTransition moveTransition = board.currentPlayer().makeMove(move);
+                if (moveTransition.getMoveStatus().isDone()) {
+                    minScore = Math.min(minScore, minimax(moveTransition.getToBoard(), depth - 1, alpha, minScore, true));
+                    if (minScore <= alpha) {
+                        break;
+                    }
                 }
             }
+            return minScore;
         }
-        return minScore;
     }
 
 
