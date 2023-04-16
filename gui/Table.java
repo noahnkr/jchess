@@ -135,7 +135,7 @@ public class Table extends Observable {
             public void actionPerformed(ActionEvent e) {
                 Table.get().getGameSetup().promptUser();
                 Table.get().setupUpdate(Table.get().getGameSetup());
-                Table.get().getBoardPanel().drawBoard(Table.get().getGameBoard(), false);
+                Table.get().getBoardPanel().drawBoard(Table.get().getGameBoard(), true);
             }
             
         });
